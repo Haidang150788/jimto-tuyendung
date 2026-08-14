@@ -47,3 +47,6 @@ next-env.d.ts
 
 # Local temp files
 temp/
+
+# Local content store fallback (used only when KV env vars aren't set)
+.data/
