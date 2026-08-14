@@ -53,14 +53,21 @@ async function fileSet(content: SiteContent): Promise<void> {
   await fs.writeFile(LOCAL_FILE, JSON.stringify(content, null, 2), "utf-8");
 }
 
+// Only `jobs` is editable from /admin, so only `jobs` comes from storage.
+// Everything else (hero, about, values, footer) always comes from
+// site-content.ts, so editing that file and pushing actually shows up —
+// otherwise a stored snapshot would shadow the code forever after the first
+// save from /admin.
 export async function getSiteContent(): Promise<SiteContent> {
   const stored = usingKv ? await kvGet() : await fileGet();
-  return stored ?? DEFAULT_SITE_CONTENT;
+  return {
+    ...DEFAULT_SITE_CONTENT,
+    jobs: stored?.jobs ?? DEFAULT_SITE_CONTENT.jobs,
+  };
 }
 
 export async function setJobs(jobs: JobItem[]): Promise<SiteContent> {
-  const current = await getSiteContent();
-  const next: SiteContent = { ...current, jobs };
+  const next: SiteContent = { ...DEFAULT_SITE_CONTENT, jobs };
   if (usingKv) {
     await kvSet(next);
   } else {

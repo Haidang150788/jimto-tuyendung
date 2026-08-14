@@ -53,3 +53,5 @@ Nếu bỏ qua bước này, HR vào `/admin` sửa tin tuyển dụng sẽ báo
 ## Sau này muốn sửa nội dung Trang chủ / Giới thiệu / Giá trị cốt lõi / Footer
 
 Các phần này chưa có giao diện Admin (chỉ Việc làm mới có, theo yêu cầu). Muốn đổi thì sửa trực tiếp trong `src/lib/site-content.ts`, commit, rồi `git push` — Vercel tự động deploy lại bản mới sau vài chục giây.
+
+Redis chỉ lưu **danh sách việc làm**. Mọi phần khác luôn đọc từ `site-content.ts`, nên sửa file rồi push là hiện ra ngay, không bị dữ liệu cũ trong Redis đè lên.
