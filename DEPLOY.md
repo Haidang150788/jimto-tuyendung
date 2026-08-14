@@ -21,8 +21,9 @@ git push -u origin master
 
 1. Tạo tài khoản tại https://vercel.com (đăng nhập bằng GitHub luôn cho tiện).
 2. Bấm **Add New → Project**, chọn repo `jimto-tuyendung` vừa tạo → **Import**.
-3. Ở bước cấu hình, thêm **Environment Variable**:
+3. Ở bước cấu hình, thêm các **Environment Variable** sau (lấy giá trị y hệt trong file `.env.local` trên máy bạn):
    - `ADMIN_PASSWORD` = mật khẩu bạn muốn dùng để đăng nhập `/admin` (đổi khác mật khẩu demo `jimto-hr-2026` cho chắc ăn).
+   - `LARK_APP_ID`, `LARK_APP_SECRET`, `LARK_BASE_APP_TOKEN`, `LARK_TABLE_NAME` — để nút "Ứng tuyển" gửi hồ sơ vào đúng bảng Lark. Thiếu 4 biến này thì gửi hồ sơ sẽ báo lỗi.
 4. Bấm **Deploy**. Sau ~1 phút sẽ có link dạng `jimto-tuyendung.vercel.app` — mở thử để chắc trang chạy được.
 
 ## 3. Bật lưu trữ để Admin lưu được thật (bắt buộc)
@@ -49,6 +50,7 @@ Nếu bỏ qua bước này, HR vào `/admin` sửa tin tuyển dụng sẽ báo
 - Vào `/admin`, đăng nhập bằng `ADMIN_PASSWORD` đã đặt ở bước 2.
 - Thử thêm 1 tin test, mở trang chủ bằng **trình duyệt/máy khác** (hoặc điện thoại) xem tin đó có hiện ra không — nếu có nghĩa là đã lưu đúng lên server, mọi người xem đều thấy.
 - Xoá tin test đi.
+- Bấm thử "Ứng tuyển" ở 1 tin, điền form test, gửi — kiểm tra bảng "Danh sách ứng tuyển qua web" trên Lark có bản ghi mới không. Xoá bản ghi test đó trong Lark sau khi kiểm tra xong.
 
 ## Sau này muốn sửa nội dung Trang chủ / Giới thiệu / Giá trị cốt lõi / Footer
 

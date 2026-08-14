@@ -96,7 +96,11 @@ export function JobListSection() {
           setApplyingTo(job);
         }}
       />
-      <ApplyModal job={applyingTo} onClose={() => setApplyingTo(null)} />
+      <ApplyModal
+        key={applyingTo?.id ?? "none"}
+        job={applyingTo}
+        onClose={() => setApplyingTo(null)}
+      />
     </section>
   );
 }
