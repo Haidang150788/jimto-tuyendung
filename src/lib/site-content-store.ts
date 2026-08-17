@@ -53,6 +53,23 @@ async function fileSet(content: SiteContent): Promise<void> {
   await fs.writeFile(LOCAL_FILE, JSON.stringify(content, null, 2), "utf-8");
 }
 
+// Jobs saved before employmentType/location became multi-select are stored
+// as plain strings. Coerce those into single-item arrays so old records
+// don't crash `.map`/`.join` calls in the UI after the shape changed.
+function toArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") return [value];
+  return [];
+}
+
+function normalizeJob(job: JobItem): JobItem {
+  return {
+    ...job,
+    employmentType: toArray(job.employmentType),
+    location: toArray(job.location),
+  };
+}
+
 // Only `jobs` is editable from /admin, so only `jobs` comes from storage.
 // Everything else (hero, about, values, footer) always comes from
 // site-content.ts, so editing that file and pushing actually shows up —
@@ -60,9 +77,10 @@ async function fileSet(content: SiteContent): Promise<void> {
 // save from /admin.
 export async function getSiteContent(): Promise<SiteContent> {
   const stored = usingKv ? await kvGet() : await fileGet();
+  const jobs = stored?.jobs ?? DEFAULT_SITE_CONTENT.jobs;
   return {
     ...DEFAULT_SITE_CONTENT,
-    jobs: stored?.jobs ?? DEFAULT_SITE_CONTENT.jobs,
+    jobs: jobs.map(normalizeJob),
   };
 }
 
