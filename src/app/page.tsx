@@ -4,7 +4,6 @@ import { JobListSection } from "@/components/site/JobListSection";
 import { AboutSection } from "@/components/site/AboutSection";
 import { CoreValuesSection } from "@/components/site/CoreValuesSection";
 import { Footer } from "@/components/site/Footer";
-import { FloatingButtons } from "@/components/site/FloatingButtons";
 
 export default function Home() {
   return (
@@ -17,7 +16,6 @@ export default function Home() {
         <CoreValuesSection />
       </main>
       <Footer />
-      <FloatingButtons />
     </>
   );
 }

@@ -5,8 +5,16 @@ import { X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
 import { TextField, TextAreaField } from "../fields";
 
-const DEPARTMENTS = ["Khối Cửa Hàng", "Khối Văn Phòng", "Khối Cung Ứng", "Khối Sản Xuất"];
-const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Cộng tác viên", "Thực tập sinh"];
+const DEPARTMENTS = ["Văn phòng", "Cửa hàng", "Kho"];
+const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Xoay ca"];
+const LOCATIONS = [
+  "Phường Hạc Thành",
+  "Sầm Sơn",
+  "Yên Định",
+  "Thiệu Hoá",
+  "Quảng Xương",
+  "Triệu Sơn",
+];
 
 interface JobFormModalProps {
   initial: JobItem | null;
@@ -20,9 +28,9 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
     initial ?? {
       id: 0,
       title: "",
-      department: DEPARTMENTS[1],
+      department: DEPARTMENTS[0],
       employmentType: EMPLOYMENT_TYPES[0],
-      location: "",
+      location: LOCATIONS[0],
       deadline: "",
       salary: "",
       description: "",
@@ -100,12 +108,20 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
             </select>
           </label>
 
-          <TextField
-            label="Địa điểm"
-            value={draft.location}
-            onChange={(v) => setDraft({ ...draft, location: v })}
-            placeholder="Ví dụ: Thanh Hoá"
-          />
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-semibold text-black/70">Địa điểm</span>
+            <select
+              value={draft.location}
+              onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+              className="rounded-lg border border-black/10 px-3 py-2 text-sm text-black outline-none focus:border-brand"
+            >
+              {LOCATIONS.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
           <TextField
             label="Hạn nộp (dd/mm/yyyy)"
             value={draft.deadline}
