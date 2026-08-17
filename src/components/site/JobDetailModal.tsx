@@ -27,15 +27,20 @@ export function JobDetailModal({ job, onClose, onApply }: JobDetailModalProps) {
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
                 {job.department}
               </span>
-              <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-semibold text-black/60">
-                {job.employmentType}
-              </span>
+              {job.employmentType.map((type) => (
+                <span
+                  key={type}
+                  className="rounded-full bg-black/5 px-3 py-1 text-xs font-semibold text-black/60"
+                >
+                  {type}
+                </span>
+              ))}
             </div>
             <h3 className="mt-2.5 text-xl font-bold text-black">{job.title}</h3>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-black/50">
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-3.5" />
-                {job.location}
+                {job.location.join(", ")}
               </span>
               <span className="flex items-center gap-1.5">
                 <CalendarDays className="size-3.5" />

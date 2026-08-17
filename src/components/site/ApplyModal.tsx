@@ -51,7 +51,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               Ứng tuyển
             </p>
             <h3 className="mt-1 text-lg font-bold text-black">{job.title}</h3>
-            <p className="mt-0.5 text-sm text-black/50">{job.location}</p>
+            <p className="mt-0.5 text-sm text-black/50">{job.location.join(", ")}</p>
           </div>
           <button
             type="button"

@@ -85,13 +85,18 @@ export function JobsEditor() {
                 <span className="rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-600">
                   {job.department}
                 </span>
-                <span className="rounded-full bg-black/5 px-2.5 py-0.5 font-semibold text-black/60">
-                  {job.employmentType}
-                </span>
+                {job.employmentType.map((type) => (
+                  <span
+                    key={type}
+                    className="rounded-full bg-black/5 px-2.5 py-0.5 font-semibold text-black/60"
+                  >
+                    {type}
+                  </span>
+                ))}
               </div>
               <p className="mt-1.5 text-sm font-bold text-black">{job.title}</p>
               <p className="mt-0.5 text-xs text-black/50">
-                {job.location} · Hạn nộp {job.deadline} · {job.salary}
+                {job.location.join(", ")} · Hạn nộp {job.deadline} · {job.salary}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
-import { TextField, TextAreaField } from "../fields";
+import { TextField, TextAreaField, CheckboxGroupField } from "../fields";
 
 const DEPARTMENTS = ["Văn phòng", "Cửa hàng", "Kho"];
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Xoay ca"];
@@ -29,8 +29,8 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
       id: 0,
       title: "",
       department: DEPARTMENTS[0],
-      employmentType: EMPLOYMENT_TYPES[0],
-      location: LOCATIONS[0],
+      employmentType: [EMPLOYMENT_TYPES[0]],
+      location: [LOCATIONS[0]],
       deadline: "",
       salary: "",
       description: "",
@@ -39,7 +39,10 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
     },
   );
 
-  const isValid = draft.title.trim() !== "" && draft.location.trim() !== "";
+  const isValid =
+    draft.title.trim() !== "" &&
+    draft.location.length > 0 &&
+    draft.employmentType.length > 0;
 
   return (
     <div
@@ -93,35 +96,19 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
             </select>
           </label>
 
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-semibold text-black/70">Hình thức làm việc</span>
-            <select
-              value={draft.employmentType}
-              onChange={(e) => setDraft({ ...draft, employmentType: e.target.value })}
-              className="rounded-lg border border-black/10 px-3 py-2 text-sm text-black outline-none focus:border-brand"
-            >
-              {EMPLOYMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CheckboxGroupField
+            label="Hình thức làm việc"
+            options={EMPLOYMENT_TYPES}
+            value={draft.employmentType}
+            onChange={(v) => setDraft({ ...draft, employmentType: v })}
+          />
 
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-semibold text-black/70">Địa điểm</span>
-            <select
-              value={draft.location}
-              onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-              className="rounded-lg border border-black/10 px-3 py-2 text-sm text-black outline-none focus:border-brand"
-            >
-              {LOCATIONS.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CheckboxGroupField
+            label="Địa điểm"
+            options={LOCATIONS}
+            value={draft.location}
+            onChange={(v) => setDraft({ ...draft, location: v })}
+          />
           <TextField
             label="Hạn nộp (dd/mm/yyyy)"
             value={draft.deadline}

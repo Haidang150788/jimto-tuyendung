@@ -2,8 +2,8 @@ export interface JobItem {
   id: number;
   title: string;
   department: string;
-  employmentType: string;
-  location: string;
+  employmentType: string[];
+  location: string[];
   deadline: string;
   salary: string;
   description: string;
@@ -62,8 +62,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 63,
       title: "Trưởng nhóm C&B",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "01/01/0001",
       salary: "20 Triệu - 25 Triệu",
       description:
@@ -77,8 +77,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 61,
       title: "Middle .NET Backend Developer",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "31/07/2026",
       salary: "18 Triệu - 25 Triệu",
       description:
@@ -92,8 +92,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 60,
       title: "Thiết kế đồ họa",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "31/07/2026",
       salary: "10 Triệu - 15 Triệu",
       description:
@@ -107,8 +107,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 59,
       title: "Chuyên viên Phát triển Kinh doanh",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "31/07/2026",
       salary: "10 Triệu - 18 Triệu",
       description:
@@ -122,8 +122,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 58,
       title: "Quản lý ngành hàng",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "20/07/2026",
       salary: "20 Triệu - 30 Triệu",
       description:
@@ -137,8 +137,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 57,
       title: "Trưởng nhóm Livestream",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "19/07/2026",
       salary: "12 Triệu - 15 Triệu",
       description:
@@ -152,8 +152,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 56,
       title: "Kế toán tổng hợp",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "11/07/2026",
       salary: "18 Triệu - 25 Triệu",
       description:
@@ -167,8 +167,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 55,
       title: "Trưởng nhóm Kế toán thuế",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "11/07/2026",
       salary: "16 Triệu - 18 Triệu",
       description:
@@ -182,8 +182,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 54,
       title: "Thực tập sinh Tuyển dụng",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "11/07/2026",
       salary: "2 Triệu",
       description:
@@ -197,8 +197,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       id: 53,
       title: "Chuyên viên Nhập khẩu",
       department: "Văn phòng",
-      employmentType: "Full-time",
-      location: "Phường Hạc Thành",
+      employmentType: ["Full-time"],
+      location: ["Phường Hạc Thành"],
       deadline: "14/07/2026",
       salary: "10 Triệu - 16 Triệu",
       description:
