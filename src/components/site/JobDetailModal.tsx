@@ -37,15 +37,9 @@ export function JobDetailModal({ job, onClose, onApply }: JobDetailModalProps) {
               ))}
             </div>
             <h3 className="mt-2.5 text-xl font-bold text-black">{job.title}</h3>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-black/50">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="size-3.5" />
-                {job.location.join(", ")}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="size-3.5" />
-                Hạn nộp: {job.deadline}
-              </span>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-black/50">
+              <CalendarDays className="size-3.5" />
+              Hạn nộp: {job.deadline}
             </div>
           </div>
           <button
@@ -59,6 +53,25 @@ export function JobDetailModal({ job, onClose, onApply }: JobDetailModalProps) {
         </div>
 
         <p className="mt-4 text-sm font-bold text-brand">{job.salary}</p>
+
+        {job.location.length > 0 && (
+          <section className="mt-4">
+            <h4 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-black/70">
+              <MapPin className="size-3.5" />
+              Địa điểm làm việc
+            </h4>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {job.location.map((loc) => (
+                <span
+                  key={loc}
+                  className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium text-black/70"
+                >
+                  {loc}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {job.description && (
           <section className="mt-5">

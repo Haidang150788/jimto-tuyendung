@@ -2,19 +2,13 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { JobItem } from "@/lib/site-content";
+import {
+  JOB_DEPARTMENTS as DEPARTMENTS,
+  JOB_EMPLOYMENT_TYPES as EMPLOYMENT_TYPES,
+  JOB_LOCATIONS as LOCATIONS,
+  type JobItem,
+} from "@/lib/site-content";
 import { TextField, TextAreaField, CheckboxGroupField } from "../fields";
-
-const DEPARTMENTS = ["Văn phòng", "Cửa hàng", "Kho"];
-const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Xoay ca"];
-const LOCATIONS = [
-  "Phường Hạc Thành",
-  "Sầm Sơn",
-  "Yên Định",
-  "Thiệu Hoá",
-  "Quảng Xương",
-  "Triệu Sơn",
-];
 
 interface JobFormModalProps {
   initial: JobItem | null;
@@ -25,18 +19,26 @@ interface JobFormModalProps {
 
 export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalProps) {
   const [draft, setDraft] = useState<JobItem>(
-    initial ?? {
-      id: 0,
-      title: "",
-      department: DEPARTMENTS[0],
-      employmentType: [EMPLOYMENT_TYPES[0]],
-      location: [LOCATIONS[0]],
-      deadline: "",
-      salary: "",
-      description: "",
-      requirements: "",
-      benefits: "",
-    },
+    initial
+      ? {
+          ...initial,
+          // Drop any stale free-text values from before these fields were
+          // closed lists — otherwise they'd silently ride along on save.
+          employmentType: initial.employmentType.filter((t) => EMPLOYMENT_TYPES.includes(t)),
+          location: initial.location.filter((l) => LOCATIONS.includes(l)),
+        }
+      : {
+          id: 0,
+          title: "",
+          department: DEPARTMENTS[0],
+          employmentType: [EMPLOYMENT_TYPES[0]],
+          location: [LOCATIONS[0]],
+          deadline: "",
+          salary: "",
+          description: "",
+          requirements: "",
+          benefits: "",
+        },
   );
 
   const isValid =

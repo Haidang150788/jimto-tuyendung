@@ -13,6 +13,20 @@ export interface JobItem {
   hidden?: boolean;
 }
 
+// Single source of truth for the closed option lists used by the admin job
+// form — also used server-side to drop stale free-text values left over
+// from before these fields were closed lists (see site-content-store.ts).
+export const JOB_DEPARTMENTS = ["Văn phòng", "Cửa hàng", "Kho"];
+export const JOB_EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Xoay ca"];
+export const JOB_LOCATIONS = [
+  "Phường Hạc Thành",
+  "Sầm Sơn",
+  "Yên Định",
+  "Thiệu Hoá",
+  "Quảng Xương",
+  "Triệu Sơn",
+];
+
 export interface FeatureItem {
   title: string;
   description: string;

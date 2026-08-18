@@ -1,6 +1,12 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { DEFAULT_SITE_CONTENT, type JobItem, type SiteContent } from "./site-content";
+import {
+  DEFAULT_SITE_CONTENT,
+  JOB_EMPLOYMENT_TYPES,
+  JOB_LOCATIONS,
+  type JobItem,
+  type SiteContent,
+} from "./site-content";
 
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -54,8 +60,12 @@ async function fileSet(content: SiteContent): Promise<void> {
 }
 
 // Jobs saved before employmentType/location became multi-select are stored
-// as plain strings. Coerce those into single-item arrays so old records
-// don't crash `.map`/`.join` calls in the UI after the shape changed.
+// as plain free-text strings. Coerce those into arrays so old records don't
+// crash `.map`/`.join` calls in the UI after the shape changed, and drop any
+// value that isn't one of the current closed-list options — otherwise stale
+// free text keeps riding along on every future save (it doesn't match any
+// checkbox, so the admin form can never uncheck it) and shows up jumbled
+// together with the real selections on the public site.
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) return value;
   if (typeof value === "string" && value.trim() !== "") return [value];
@@ -65,8 +75,10 @@ function toArray(value: unknown): string[] {
 function normalizeJob(job: JobItem): JobItem {
   return {
     ...job,
-    employmentType: toArray(job.employmentType),
-    location: toArray(job.location),
+    employmentType: toArray(job.employmentType).filter((t) =>
+      JOB_EMPLOYMENT_TYPES.includes(t),
+    ),
+    location: toArray(job.location).filter((l) => JOB_LOCATIONS.includes(l)),
   };
 }
 
