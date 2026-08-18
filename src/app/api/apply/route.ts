@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitApplicationToLark } from "@/lib/lark";
 
-export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as {
-    name?: string;
-    phone?: string;
-    email?: string;
-    position?: string;
-  } | null;
+const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
-  const name = body?.name?.trim() ?? "";
-  const phone = body?.phone?.trim() ?? "";
-  const email = body?.email?.trim() ?? "";
-  const position = body?.position?.trim() ?? "";
+export async function POST(req: NextRequest) {
+  const formData = await req.formData().catch(() => null);
+  if (!formData) {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const position = String(formData.get("position") ?? "").trim();
+  const cvEntry = formData.get("cv");
+  const cvFile = cvEntry instanceof File && cvEntry.size > 0 ? cvEntry : null;
 
   if (!name || !phone) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
+  if (cvFile && cvFile.size > MAX_CV_SIZE) {
+    return NextResponse.json({ error: "cv_too_large" }, { status: 413 });
+  }
 
   try {
-    await submitApplicationToLark({ name, phone, email, position });
+    await submitApplicationToLark({ name, phone, email, position, cvFile });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/apply] Failed to submit to Lark:", err);

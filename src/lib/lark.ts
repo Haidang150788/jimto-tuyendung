@@ -111,11 +111,39 @@ function resolveFieldName(fields: FieldInfo[], expectedName: string): string {
   return match.name;
 }
 
+async function uploadFileToLark(token: string, file: File): Promise<string> {
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+
+  const form = new FormData();
+  form.append("file_name", file.name);
+  form.append("parent_type", "bitable_file");
+  form.append("parent_node", appToken ?? "");
+  form.append("size", String(file.size));
+  form.append("file", file);
+
+  const res = await fetch(`${LARK_API_BASE}/drive/v1/medias/upload_all`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const data = (await res.json()) as {
+    code: number;
+    msg: string;
+    data?: { file_token: string };
+  };
+
+  if (data.code !== 0 || !data.data?.file_token) {
+    throw new Error(`Lark file upload failed: ${data.msg} (code ${data.code})`);
+  }
+  return data.data.file_token;
+}
+
 export interface ApplicationSubmission {
   name: string;
   phone: string;
   email: string;
   position: string;
+  cvFile?: File | null;
 }
 
 export async function submitApplicationToLark(submission: ApplicationSubmission) {
@@ -128,7 +156,7 @@ export async function submitApplicationToLark(submission: ApplicationSubmission)
     (f) => normalize(f.name) === "ngày" || f.type === DATE_FIELD_TYPE,
   );
 
-  const record: Record<string, string | number> = {
+  const record: Record<string, string | number | { file_token: string }[]> = {
     [resolveFieldName(fields, "họ tên")]: submission.name,
     [resolveFieldName(fields, "số điện thoại")]: submission.phone,
     [resolveFieldName(fields, "email")]: submission.email,
@@ -137,6 +165,10 @@ export async function submitApplicationToLark(submission: ApplicationSubmission)
   if (dateField) {
     record[dateField.name] =
       dateField.type === DATE_FIELD_TYPE ? Date.now() : new Date().toLocaleDateString("vi-VN");
+  }
+  if (submission.cvFile && submission.cvFile.size > 0) {
+    const fileToken = await uploadFileToLark(token, submission.cvFile);
+    record[resolveFieldName(fields, "cv")] = [{ file_token: fileToken }];
   }
 
   const res = await fetch(

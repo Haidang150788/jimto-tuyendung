@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Paperclip, X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
 
 interface ApplyModalProps {
@@ -11,28 +11,50 @@ interface ApplyModalProps {
 
 type Status = "idle" | "submitting" | "success" | "error";
 
+const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
+
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!job) return null;
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > MAX_CV_SIZE) {
+      setError("File CV vượt quá 10MB, vui lòng chọn file nhỏ hơn.");
+      setCvFile(null);
+      e.target.value = "";
+      return;
+    }
+    setError(null);
+    setCvFile(file);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!job) return;
     setStatus("submitting");
+    setError(null);
     try {
-      const res = await fetch("/api/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, position: job.title }),
-      });
+      const formData = new FormData();
+      formData.set("name", name);
+      formData.set("phone", phone);
+      formData.set("email", email);
+      formData.set("position", job.title);
+      if (cvFile) formData.set("cv", cvFile);
+
+      const res = await fetch("/api/apply", { method: "POST", body: formData });
       if (!res.ok) throw new Error("submit_failed");
       setStatus("success");
     } catch {
       setStatus("error");
+      setError("Gửi hồ sơ thất bại, vui lòng thử lại sau.");
     }
   }
 
@@ -102,11 +124,26 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               placeholder="Email"
               className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
             />
-            {status === "error" && (
-              <p className="text-xs font-medium text-red-500">
-                Gửi hồ sơ thất bại, vui lòng thử lại sau.
-              </p>
-            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 rounded-lg border border-dashed border-black/20 px-3 py-2.5 text-left text-sm text-black/60 hover:border-brand hover:text-brand"
+            >
+              <Paperclip className="size-4 shrink-0" />
+              <span className="truncate">
+                {cvFile ? cvFile.name : "Đính kèm CV (PDF, DOC, DOCX)"}
+              </span>
+            </button>
+
+            {error && <p className="text-xs font-medium text-red-500">{error}</p>}
             <button
               type="submit"
               disabled={status === "submitting"}
