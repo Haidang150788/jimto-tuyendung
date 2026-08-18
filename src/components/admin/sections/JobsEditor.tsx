@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Pencil, Plus, Trash2 } from "lucide-react";
 import { useSiteContent } from "@/lib/site-content-context";
 import type { JobItem } from "@/lib/site-content";
 import { JobFormModal } from "./JobFormModal";
@@ -44,6 +44,20 @@ export function JobsEditor() {
     }
   }
 
+  async function toggleHidden(id: number) {
+    setError(null);
+    setSavingId(id);
+    try {
+      await updateJobs((jobs) =>
+        jobs.map((j) => (j.id === id ? { ...j, hidden: !j.hidden } : j)),
+      );
+    } catch {
+      setError("Không lưu được lên máy chủ. Kiểm tra kết nối mạng và thử lại.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -78,10 +92,18 @@ export function JobsEditor() {
         {content.jobs.map((job) => (
           <div
             key={job.id}
-            className="flex flex-col gap-3 rounded-xl border border-black/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+            className={
+              "flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between " +
+              (job.hidden ? "border-black/10 bg-black/[0.02] opacity-60" : "border-black/10")
+            }
           >
             <div>
               <div className="flex flex-wrap items-center gap-2 text-xs">
+                {job.hidden && (
+                  <span className="rounded-full bg-black/70 px-2.5 py-0.5 font-semibold text-white">
+                    Đã ẩn
+                  </span>
+                )}
                 <span className="rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-600">
                   {job.department}
                 </span>
@@ -100,6 +122,16 @@ export function JobsEditor() {
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => toggleHidden(job.id)}
+                aria-label={job.hidden ? "Hiện lại" : "Ẩn"}
+                title={job.hidden ? "Hiện lại trên trang chủ" : "Ẩn khỏi trang chủ"}
+                disabled={savingId === job.id}
+                className="flex size-8 items-center justify-center rounded-lg border border-black/10 text-black/60 hover:bg-black/5 disabled:opacity-40"
+              >
+                {job.hidden ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+              </button>
               <button
                 type="button"
                 onClick={() => setEditingJob(job)}

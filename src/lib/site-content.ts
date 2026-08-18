@@ -9,6 +9,8 @@ export interface JobItem {
   description: string;
   requirements: string;
   benefits: string;
+  /** Hidden postings stay in the admin list but are dropped from the public site. */
+  hidden?: boolean;
 }
 
 export interface FeatureItem {

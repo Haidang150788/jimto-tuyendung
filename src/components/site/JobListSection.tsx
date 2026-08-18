@@ -12,6 +12,7 @@ export function JobListSection() {
   const [page, setPage] = useState(1);
   const [viewingJob, setViewingJob] = useState<JobItem | null>(null);
   const [applyingTo, setApplyingTo] = useState<JobItem | null>(null);
+  const visibleJobs = content.jobs.filter((job) => !job.hidden);
 
   return (
     <section id="viec-lam" className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
@@ -27,7 +28,7 @@ export function JobListSection() {
       <div className="mt-10">
         <div className="flex items-center justify-between text-sm text-black/50">
           <span>
-            Tìm thấy <strong className="text-black">{content.jobs.length}</strong> công
+            Tìm thấy <strong className="text-black">{visibleJobs.length}</strong> công
             việc
           </span>
           <span className="flex items-center gap-2">
@@ -42,8 +43,8 @@ export function JobListSection() {
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
-          {content.jobs.length > 0 ? (
-            content.jobs.map((job) => (
+          {visibleJobs.length > 0 ? (
+            visibleJobs.map((job) => (
               <JobCard
                 key={job.id}
                 job={job}
