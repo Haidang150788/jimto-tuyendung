@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSiteContent } from "@/lib/site-content-context";
 import type { JobItem } from "@/lib/site-content";
 import { JobCard } from "./JobCard";
 import { JobDetailModal } from "./JobDetailModal";
 import { ApplyModal } from "./ApplyModal";
+
+const PAGE_SIZE = 10;
 
 export function JobListSection() {
   const { content } = useSiteContent();
@@ -13,6 +15,13 @@ export function JobListSection() {
   const [viewingJob, setViewingJob] = useState<JobItem | null>(null);
   const [applyingTo, setApplyingTo] = useState<JobItem | null>(null);
   const visibleJobs = content.jobs.filter((job) => !job.hidden);
+
+  const totalPages = Math.max(1, Math.ceil(visibleJobs.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedJobs = useMemo(
+    () => visibleJobs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [visibleJobs, currentPage],
+  );
 
   return (
     <section id="viec-lam" className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
@@ -43,8 +52,8 @@ export function JobListSection() {
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
-          {visibleJobs.length > 0 ? (
-            visibleJobs.map((job) => (
+          {pagedJobs.length > 0 ? (
+            pagedJobs.map((job) => (
               <JobCard
                 key={job.id}
                 job={job}
@@ -59,33 +68,31 @@ export function JobListSection() {
           )}
         </div>
 
-        <nav className="mt-8 flex items-center justify-center gap-2">
-          {[1, 2, 3].map((p) => (
+        {totalPages > 1 && (
+          <nav className="mt-8 flex items-center justify-center gap-2">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPage(p)}
+                className={
+                  p === currentPage
+                    ? "flex size-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white"
+                    : "flex size-8 items-center justify-center rounded-full text-sm font-medium text-black/60 hover:bg-black/5"
+                }
+              >
+                {p}
+              </button>
+            ))}
             <button
-              key={p}
               type="button"
-              onClick={() => setPage(p)}
-              className={
-                p === page
-                  ? "flex size-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white"
-                  : "flex size-8 items-center justify-center rounded-full text-sm font-medium text-black/60 hover:bg-black/5"
-              }
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="ml-1 rounded-full px-3 py-1.5 text-sm font-medium text-black/60 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {p}
+              Tiếp
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(3, p + 1))}
-            className="ml-1 rounded-full px-3 py-1.5 text-sm font-medium text-black/60 hover:bg-black/5"
-          >
-            Tiếp
-          </button>
-        </nav>
-        {page !== 1 && (
-          <p className="mt-3 text-center text-xs text-black/30">
-            Bản demo chỉ hiển thị dữ liệu thật của trang 1.
-          </p>
+          </nav>
         )}
       </div>
 
