@@ -284,6 +284,77 @@ async function submitToGeneralTable(token: string, submission: ApplicationSubmis
   await createRecord(token, tableId, record);
 }
 
+/** Strips everything but digits and drops a leading 84/0 so "0901234567",
+ * "+84901234567" and "84 90 123 4567" all normalize the same way. */
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("84")) return digits.slice(2);
+  if (digits.startsWith("0")) return digits.slice(1);
+  return digits;
+}
+
+export interface SalesApplicationMatch {
+  name: string;
+  phone: string;
+}
+
+// Looks up a candidate in the sales screening table ("(NEW) Form tuyển
+// dụng") by phone number — used by the recruitment Zalo bot to recognize a
+// candidate on their first inbound message (see ZALO_AUTOMATION.md). This
+// table has no stable per-record webhook-friendly key other than phone, so
+// we paginate the whole table and compare normalized digits rather than an
+// exact-string filter, which would miss "0901234567" vs "+84901234567".
+export async function findSalesApplicationByPhone(
+  phone: string,
+): Promise<SalesApplicationMatch | null> {
+  const target = normalizePhone(phone);
+  if (!target) return null;
+
+  const token = await getTenantAccessToken();
+  const tableName = process.env.LARK_TABLE_NAME_SALES;
+  if (!tableName) throw new Error("LARK_TABLE_NAME_SALES is not configured");
+  const tableId = await findTableId(token, tableName);
+  const fields = await getFields(token, tableId);
+  const nameField = resolveFieldName(fields, "họ tên");
+  const phoneField = resolveFieldName(fields, "số điện thoại liên hệ");
+
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+  let pageToken: string | undefined;
+
+  do {
+    const url = new URL(`${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records`);
+    url.searchParams.set("page_size", "100");
+    if (pageToken) url.searchParams.set("page_token", pageToken);
+
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = (await res.json()) as {
+      code: number;
+      msg: string;
+      data?: {
+        items?: { fields: Record<string, unknown> }[];
+        has_more?: boolean;
+        page_token?: string;
+      };
+    };
+    if (data.code !== 0) {
+      throw new Error(`Lark list records failed: ${data.msg} (code ${data.code})`);
+    }
+
+    for (const item of data.data?.items ?? []) {
+      const rawPhone = item.fields[phoneField];
+      const phoneStr = typeof rawPhone === "string" ? rawPhone : String(rawPhone ?? "");
+      if (normalizePhone(phoneStr) === target) {
+        const rawName = item.fields[nameField];
+        return { name: typeof rawName === "string" ? rawName : String(rawName ?? ""), phone: phoneStr };
+      }
+    }
+
+    pageToken = data.data?.has_more ? data.data?.page_token : undefined;
+  } while (pageToken);
+
+  return null;
+}
+
 export async function submitApplicationToLark(submission: ApplicationSubmission) {
   const token = await getTenantAccessToken();
   const isSalesPosition = isSalesPositionTitle(submission.position);

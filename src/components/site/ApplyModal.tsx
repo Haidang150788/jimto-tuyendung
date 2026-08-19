@@ -14,6 +14,16 @@ type Status = "idle" | "submitting" | "success" | "error";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
+// Left blank until a dedicated Zalo number/account is set up (see
+// ZALO_AUTOMATION.md) — the CTA below only renders once this is real.
+const ZALO_BOT_PHONE = process.env.NEXT_PUBLIC_ZALO_BOT_PHONE;
+
+// zalo.me profile links expect the international format (84…, no leading 0,
+// no plus) — the env var is kept in the human-friendly local format.
+const ZALO_BOT_LINK = ZALO_BOT_PHONE
+  ? `https://zalo.me/84${ZALO_BOT_PHONE.replace(/\D/g, "").replace(/^0/, "")}`
+  : null;
+
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const isSalesPosition = job ? isSalesPositionTitle(job.title) : false;
 
@@ -138,6 +148,22 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
             <p className="text-sm text-black/50">
               Cảm ơn bạn đã ứng tuyển. Bộ phận nhân sự sẽ liên hệ sớm nhất.
             </p>
+            {isSalesPosition && ZALO_BOT_LINK && (
+              <a
+                href={ZALO_BOT_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex w-full flex-col gap-1 rounded-xl border border-black/10 bg-black/[0.02] p-3 text-left"
+              >
+                <span className="text-sm font-bold text-black">
+                  Nhắn Zalo để nhận cập nhật hồ sơ nhanh hơn
+                </span>
+                <span className="text-xs text-black/50">
+                  Mở Zalo, kết bạn và nhắn đúng số điện thoại bạn vừa đăng ký (
+                  {phone || "VD: 0901234567"}) — Jim Tồ sẽ báo kết quả qua Zalo thay vì gọi điện.
+                </span>
+              </a>
+            )}
             <button
               type="button"
               onClick={onClose}
