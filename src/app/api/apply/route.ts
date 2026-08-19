@@ -47,15 +47,20 @@ export async function POST(req: NextRequest) {
   // only put it in their CV rather than the form field, so fall back to
   // extracting it from the file before treating it as truly missing.
   const isSalesPosition = isSalesPositionTitle(position);
+  let debugExtractError: string | null = null;
   if (!isSalesPosition && !email && cvFile) {
     const extracted = await extractEmailFromCv(cvFile).catch((err) => {
       console.error("[api/apply] CV email extraction failed:", err);
+      debugExtractError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
       return null;
     });
     if (extracted) email = extracted;
   }
   if (!isSalesPosition && !email) {
-    return NextResponse.json({ error: "email_required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "email_required", debugExtractError },
+      { status: 400 },
+    );
   }
 
   try {

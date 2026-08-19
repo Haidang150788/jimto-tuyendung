@@ -39,6 +39,9 @@ export async function extractEmailFromCv(file: File): Promise<string | null> {
     return firstEmail(buffer.toString("latin1"));
   } catch (err) {
     console.error("[extract-email-from-cv] Failed to parse CV:", err);
-    return null;
+    // TEMP DEBUG: rethrow so the caller's catch can surface the real
+    // message via the API response — Vercel's dashboard logs aren't
+    // reachable from here. Revert to `return null` once diagnosed.
+    throw err;
   }
 }
