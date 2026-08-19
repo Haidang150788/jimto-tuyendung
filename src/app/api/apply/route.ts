@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitApplicationToLark } from "@/lib/lark";
+import { sendCvReceivedEmail } from "@/lib/email";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -39,9 +40,21 @@ export async function POST(req: NextRequest) {
 
   try {
     await submitApplicationToLark({ name, phone, email, position, location, cvFile, step2 });
-    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/apply] Failed to submit to Lark:", err);
     return NextResponse.json({ error: "submit_failed" }, { status: 502 });
   }
+
+  // The application is already recorded in Lark at this point — a failed
+  // confirmation email shouldn't turn into a failed submission for the
+  // candidate, so this is best-effort and never changes the response.
+  if (email) {
+    try {
+      await sendCvReceivedEmail(email, name, position);
+    } catch (err) {
+      console.error("[api/apply] Failed to send CV-received email:", err);
+    }
+  }
+
+  return NextResponse.json({ ok: true });
 }
