@@ -13,9 +13,15 @@ interface FieldInfo {
 /** Lark field type code for Date/DateTime columns. */
 const DATE_FIELD_TYPE = 5;
 
+// Applications for this exact job title go to the original web table
+// (LARK_TABLE_NAME); every other position goes to the shared HR sheet
+// (LARK_TABLE_NAME_OTHER, "DATA TUYỂN DỤNG") instead, since that's the one
+// recruiters already work from for every non-sales-floor role.
+const SALES_POSITION_TITLE = "nhân viên tư vấn bán hàng";
+
 let cachedToken: CachedToken | null = null;
-let cachedTableId: string | null = null;
-let cachedFields: FieldInfo[] | null = null;
+const tableIdCache = new Map<string, string>(); // table name -> table_id
+const fieldsCache = new Map<string, FieldInfo[]>(); // table_id -> fields
 
 async function getTenantAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
@@ -49,11 +55,11 @@ async function getTenantAccessToken(): Promise<string> {
   return cachedToken.token;
 }
 
-async function findTableId(token: string): Promise<string> {
-  if (cachedTableId) return cachedTableId;
+async function findTableId(token: string, tableName: string): Promise<string> {
+  const cached = tableIdCache.get(tableName);
+  if (cached) return cached;
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;
-  const tableName = process.env.LARK_TABLE_NAME;
   const res = await fetch(
     `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables?page_size=100`,
     { headers: { Authorization: `Bearer ${token}` } },
@@ -74,17 +80,18 @@ async function findTableId(token: string): Promise<string> {
     throw new Error(`Không tìm thấy bảng "${tableName}" trong Base. Các bảng hiện có: ${names}`);
   }
 
-  cachedTableId = match.table_id;
+  tableIdCache.set(tableName, match.table_id);
   return match.table_id;
 }
 
-/** Normalizes a field name for case/whitespace-insensitive matching. */
+/** Normalizes a name for case/whitespace-insensitive matching. */
 function normalize(name: string): string {
   return name.trim().toLowerCase();
 }
 
 async function getFields(token: string, tableId: string): Promise<FieldInfo[]> {
-  if (cachedFields) return cachedFields;
+  const cached = fieldsCache.get(tableId);
+  if (cached) return cached;
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;
   const res = await fetch(
@@ -96,8 +103,9 @@ async function getFields(token: string, tableId: string): Promise<FieldInfo[]> {
     data?: { items?: { field_name: string; type: number }[] };
   };
 
-  cachedFields = (data.data?.items ?? []).map((f) => ({ name: f.field_name, type: f.type }));
-  return cachedFields;
+  const fields = (data.data?.items ?? []).map((f) => ({ name: f.field_name, type: f.type }));
+  fieldsCache.set(tableId, fields);
+  return fields;
 }
 
 function resolveFieldName(fields: FieldInfo[], expectedName: string): string {
@@ -143,6 +151,27 @@ async function uploadFileToLark(token: string, file: File): Promise<string> {
   return data.data.file_token;
 }
 
+type RecordFields = Record<string, string | number | { file_token: string }[]>;
+
+async function createRecord(token: string, tableId: string, fields: RecordFields) {
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+  const res = await fetch(
+    `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    },
+  );
+  const data = (await res.json()) as { code: number; msg: string };
+  if (data.code !== 0) {
+    throw new Error(`Lark create record failed: ${data.msg} (code ${data.code})`);
+  }
+}
+
 export interface ApplicationSubmission {
   name: string;
   phone: string;
@@ -153,17 +182,17 @@ export interface ApplicationSubmission {
   cvFile?: File | null;
 }
 
-export async function submitApplicationToLark(submission: ApplicationSubmission) {
-  const token = await getTenantAccessToken();
-  const tableId = await findTableId(token);
+// "Danh sách ứng tuyển qua web" — Ngày, Họ tên, Số điện thoại, Email, Vị
+// trí, CV, Trạng thái, Ghi chú.
+async function submitToWebTable(token: string, submission: ApplicationSubmission) {
+  const tableId = await findTableId(token, process.env.LARK_TABLE_NAME ?? "");
   const fields = await getFields(token, tableId);
-  const appToken = process.env.LARK_BASE_APP_TOKEN;
 
   const dateField = fields.find(
     (f) => normalize(f.name) === "ngày" || f.type === DATE_FIELD_TYPE,
   );
 
-  const record: Record<string, string | number | { file_token: string }[]> = {
+  const record: RecordFields = {
     [resolveFieldName(fields, "họ tên")]: submission.name,
     [resolveFieldName(fields, "số điện thoại")]: submission.phone,
     [resolveFieldName(fields, "email")]: submission.email,
@@ -184,20 +213,63 @@ export async function submitApplicationToLark(submission: ApplicationSubmission)
     }
   }
 
-  const res = await fetch(
-    `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ fields: record }),
-    },
-  );
-  const data = (await res.json()) as { code: number; msg: string };
+  await createRecord(token, tableId, record);
+}
 
-  if (data.code !== 0) {
-    throw new Error(`Lark create record failed: ${data.msg} (code ${data.code})`);
+// "DATA TUYỂN DỤNG" — the shared HR sheet for every other position. Vị trí
+// ứng tuyển and Vị trí làm việc are single-select columns; Lark auto-adds a
+// new option the first time a value that doesn't exist yet is written, so
+// new job titles/locations just work without any manual setup in Lark.
+async function submitToGeneralTable(token: string, submission: ApplicationSubmission) {
+  const tableName = process.env.LARK_TABLE_NAME_OTHER;
+  if (!tableName) {
+    throw new Error("LARK_TABLE_NAME_OTHER is not configured");
+  }
+  const tableId = await findTableId(token, tableName);
+  const fields = await getFields(token, tableId);
+
+  const record: RecordFields = {
+    [resolveFieldName(fields, "họ và tên")]: submission.name,
+    [resolveFieldName(fields, "sđt")]: submission.phone,
+    [resolveFieldName(fields, "email")]: submission.email,
+    [resolveFieldName(fields, "vị trí ứng tuyển")]: submission.position,
+  };
+
+  const sourceField = tryResolveFieldName(fields, "nguồn");
+  if (sourceField) {
+    record[sourceField] = "Web";
+  }
+
+  if (submission.location) {
+    const locations = submission.location
+      .split(",")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const workLocationField = tryResolveFieldName(fields, "vị trí làm việc");
+    if (workLocationField && locations[0]) {
+      record[workLocationField] = locations[0];
+    }
+    const notesField = tryResolveFieldName(fields, "ghi chú");
+    if (notesField) {
+      record[notesField] = `Địa điểm mong muốn: ${submission.location}`;
+    }
+  }
+
+  if (submission.cvFile && submission.cvFile.size > 0) {
+    const fileToken = await uploadFileToLark(token, submission.cvFile);
+    record[resolveFieldName(fields, "cv ứng viên")] = [{ file_token: fileToken }];
+  }
+
+  await createRecord(token, tableId, record);
+}
+
+export async function submitApplicationToLark(submission: ApplicationSubmission) {
+  const token = await getTenantAccessToken();
+  const isSalesPosition = normalize(submission.position) === SALES_POSITION_TITLE;
+
+  if (isSalesPosition) {
+    await submitToWebTable(token, submission);
+  } else {
+    await submitToGeneralTable(token, submission);
   }
 }
