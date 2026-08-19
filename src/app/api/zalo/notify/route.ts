@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     name?: string;
     position?: string;
     details?: string;
+    gender?: string;
   } | null;
 
   if (!expected || body?.secret !== expected) {
@@ -26,6 +27,8 @@ export async function POST(req: NextRequest) {
   const name = body?.name?.trim() ?? "";
   const position = body?.position?.trim() ?? "";
   const details = body?.details?.trim() ?? "";
+  const genderRaw = body?.gender?.trim() ?? "";
+  const gender = genderRaw === "Nam" || genderRaw === "Nữ" ? genderRaw : "";
 
   if (!phone || !name || !position) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
@@ -41,6 +44,7 @@ export async function POST(req: NextRequest) {
       name,
       position,
       details: details || undefined,
+      gender: gender || undefined,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

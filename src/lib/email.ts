@@ -59,9 +59,23 @@ function renderDetails(details: string): string {
     .join("");
 }
 
-export async function sendCvReceivedEmail(to: string, name: string, position: string) {
+export type Gender = "Nam" | "Nữ" | "";
+
+/** "Anh <name>" / "Chị <name>" when gender is known, plain "<name>" (no
+ * generic "bạn") when it isn't — avoids ever guessing wrong. */
+function salutation(name: string, gender: Gender): string {
+  const prefix = gender === "Nam" ? "Anh " : gender === "Nữ" ? "Chị " : "";
+  return escapeHtml(`${prefix}${name}`);
+}
+
+export async function sendCvReceivedEmail(
+  to: string,
+  name: string,
+  position: string,
+  gender: Gender = "",
+) {
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
     <p style="margin:0 0 14px;">Cảm ơn bạn đã quan tâm và ứng tuyển vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ.</p>
     <p style="margin:0 0 14px;">Chúng tôi đã nhận được hồ sơ của bạn và sẽ tiến hành xem xét trong thời gian sớm nhất. Bộ phận nhân sự sẽ phản hồi trong vòng 24 giờ làm việc.</p>
     <p style="margin:0;">Trân trọng,<br/>Đội ngũ Tuyển dụng Jim Tồ</p>
@@ -74,9 +88,10 @@ export async function sendInterviewInviteEmail(
   name: string,
   position: string,
   details: string,
+  gender: Gender = "",
 ) {
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
     <p style="margin:0 0 14px;">Chúc mừng bạn đã vượt qua vòng sơ tuyển cho vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ! Chúng tôi muốn mời bạn tham gia buổi phỏng vấn để tìm hiểu thêm về bạn.</p>
     ${details ? renderDetails(details) : ""}
     <p style="margin:14px 0;">Vui lòng phản hồi email này hoặc liên hệ lại để xác nhận lịch hẹn. Nếu có thay đổi, hãy báo cho chúng tôi sớm nhất có thể.</p>
@@ -85,9 +100,14 @@ export async function sendInterviewInviteEmail(
   await sendEmail(to, `Jim Tồ mời bạn tham gia phỏng vấn — ${position}`, html);
 }
 
-export async function sendRejectionEmail(to: string, name: string, position: string) {
+export async function sendRejectionEmail(
+  to: string,
+  name: string,
+  position: string,
+  gender: Gender = "",
+) {
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
     <p style="margin:0 0 14px;">Cảm ơn bạn đã dành thời gian ứng tuyển vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ.</p>
     <p style="margin:0 0 14px;">Sau khi xem xét kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng hồ sơ của bạn chưa phù hợp với vị trí này ở thời điểm hiện tại. Chúng tôi đánh giá cao sự quan tâm của bạn và mong có cơ hội hợp tác trong tương lai.</p>
     <p style="margin:0 0 14px;">Chúc bạn sớm tìm được công việc phù hợp.</p>
@@ -101,9 +121,10 @@ export async function sendOfferEmail(
   name: string,
   position: string,
   details: string,
+  gender: Gender = "",
 ) {
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${escapeHtml(name)}</strong>,</p>
+    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
     <p style="margin:0 0 14px;">Chúc mừng bạn đã chính thức trúng tuyển vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ!</p>
     ${details ? renderDetails(details) : ""}
     <p style="margin:14px 0;">Vui lòng phản hồi email này để xác nhận. Nếu có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với chúng tôi.</p>

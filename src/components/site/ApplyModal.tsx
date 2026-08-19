@@ -31,6 +31,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [gender, setGender] = useState<"Nam" | "Nữ" | "">("");
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [step2Answers, setStep2Answers] = useState<Record<string, string>>({});
@@ -79,6 +80,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
       formData.set("name", name);
       formData.set("phone", phone);
       formData.set("email", email);
+      formData.set("gender", gender);
       formData.set("position", job.title);
       const locations = needsLocationChoice ? preferredLocations : job.location;
       if (locations.length > 0) formData.set("location", locations.join(", "));
@@ -86,11 +88,18 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
       if (step2) formData.set("step2", JSON.stringify(step2));
 
       const res = await fetch("/api/apply", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("submit_failed");
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "submit_failed");
+      }
       setStatus("success");
-    } catch {
+    } catch (err) {
       setStatus("error");
-      setError("Gửi hồ sơ thất bại, vui lòng thử lại sau.");
+      setError(
+        err instanceof Error && err.message === "email_required"
+          ? "Vui lòng nhập email, hoặc đính kèm CV có ghi rõ địa chỉ email."
+          : "Gửi hồ sơ thất bại, vui lòng thử lại sau.",
+      );
     }
   }
 
@@ -98,6 +107,14 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     e.preventDefault();
     if (needsLocationChoice && preferredLocations.length === 0) {
       setError("Vui lòng chọn ít nhất một địa điểm mong muốn.");
+      return;
+    }
+    if (!email.trim() && !cvFile) {
+      setError("Vui lòng nhập email, hoặc đính kèm CV có ghi rõ địa chỉ email.");
+      return;
+    }
+    if (!gender) {
+      setError("Vui lòng chọn giới tính.");
       return;
     }
     submit(null);
@@ -272,13 +289,29 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
             />
             {!isSalesPosition && (
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
-              />
+              <>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email (hoặc để trống nếu CV đã có email)"
+                  className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                />
+                <div className="flex gap-4 px-1 text-sm text-black/70">
+                  {(["Nam", "Nữ"] as const).map((g) => (
+                    <label key={g} className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        name="gender"
+                        checked={gender === g}
+                        onChange={() => setGender(g)}
+                        className="size-4 accent-brand"
+                      />
+                      {g}
+                    </label>
+                  ))}
+                </div>
+              </>
             )}
 
             {needsLocationChoice && (

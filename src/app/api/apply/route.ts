@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitApplicationToLark } from "@/lib/lark";
 import { sendCvReceivedEmail } from "@/lib/email";
+import { isSalesPositionTitle } from "@/lib/sales-application-form";
+import { extractEmailFromCv } from "@/lib/extract-email-from-cv";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -12,9 +14,11 @@ export async function POST(req: NextRequest) {
 
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
+  let email = String(formData.get("email") ?? "").trim();
   const position = String(formData.get("position") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
+  const genderRaw = String(formData.get("gender") ?? "").trim();
+  const gender = genderRaw === "Nam" || genderRaw === "Nữ" ? genderRaw : "";
   const cvEntry = formData.get("cv");
   const cvFile = cvEntry instanceof File && cvEntry.size > 0 ? cvEntry : null;
 
@@ -38,8 +42,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "cv_too_large" }, { status: 413 });
   }
 
+  // Office positions require an email on file (sales-floor candidates never
+  // have one by design — see sales-application-form.ts). Candidates often
+  // only put it in their CV rather than the form field, so fall back to
+  // extracting it from the file before treating it as truly missing.
+  const isSalesPosition = isSalesPositionTitle(position);
+  if (!isSalesPosition && !email && cvFile) {
+    const extracted = await extractEmailFromCv(cvFile).catch((err) => {
+      console.error("[api/apply] CV email extraction failed:", err);
+      return null;
+    });
+    if (extracted) email = extracted;
+  }
+  if (!isSalesPosition && !email) {
+    return NextResponse.json({ error: "email_required" }, { status: 400 });
+  }
+
   try {
-    await submitApplicationToLark({ name, phone, email, position, location, cvFile, step2 });
+    await submitApplicationToLark({ name, phone, email, position, location, gender, cvFile, step2 });
   } catch (err) {
     console.error("[api/apply] Failed to submit to Lark:", err);
     return NextResponse.json({ error: "submit_failed" }, { status: 502 });
@@ -50,7 +70,7 @@ export async function POST(req: NextRequest) {
   // candidate, so this is best-effort and never changes the response.
   if (email) {
     try {
-      await sendCvReceivedEmail(email, name, position);
+      await sendCvReceivedEmail(email, name, position, gender);
     } catch (err) {
       console.error("[api/apply] Failed to send CV-received email:", err);
     }

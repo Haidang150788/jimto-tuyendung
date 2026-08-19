@@ -52,7 +52,8 @@ Tạo **3 automation riêng biệt**, mỗi cái theo mẫu sau:
   "email": "{{Email}}",
   "name": "{{Họ và tên}}",
   "position": "{{Vị trí ứng tuyển}}",
-  "details": "{{Ghi chú}}"
+  "details": "{{Ghi chú}}",
+  "gender": "{{Giới tính}}"
 }
 ```
 
@@ -69,7 +70,8 @@ Giống hệt Automation 1, chỉ khác:
   "type": "reject",
   "email": "{{Email}}",
   "name": "{{Họ và tên}}",
-  "position": "{{Vị trí ứng tuyển}}"
+  "position": "{{Vị trí ứng tuyển}}",
+  "gender": "{{Giới tính}}"
 }
 ```
 
@@ -85,7 +87,8 @@ Giống Automation 1, chỉ khác:
   "email": "{{Email}}",
   "name": "{{Họ và tên}}",
   "position": "{{Vị trí ứng tuyển}}",
-  "details": "{{Ghi chú}}"
+  "details": "{{Ghi chú}}",
+  "gender": "{{Giới tính}}"
 }
 ```
 

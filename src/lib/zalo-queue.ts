@@ -20,6 +20,8 @@ export interface ZaloNotifyJob {
   name: string;
   position: string;
   details?: string;
+  /** "Nam" | "Nữ" | "" — used to personalize the Zalo message (see zalo-recruit-bot). */
+  gender?: string;
 }
 
 async function redisCmd(...args: string[]): Promise<unknown> {

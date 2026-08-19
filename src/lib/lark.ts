@@ -181,6 +181,8 @@ export interface ApplicationSubmission {
   position: string;
   /** Candidate's preferred work location(s), when the posting spans more than one. */
   location?: string;
+  /** "Nam" | "Nữ" — used to personalize outbound emails/Zalo (see email.ts). */
+  gender?: string;
   cvFile?: File | null;
   /** Answers to SALES_STEP2_FIELDS, keyed by field key. Sales position only. */
   step2?: Record<string, string>;
@@ -261,6 +263,11 @@ async function submitToGeneralTable(token: string, submission: ApplicationSubmis
     record[sourceField] = "Web";
   }
 
+  if (submission.gender) {
+    const genderField = tryResolveFieldName(fields, "giới tính");
+    if (genderField) record[genderField] = submission.gender;
+  }
+
   if (submission.location) {
     const locations = submission.location
       .split(",")
@@ -296,6 +303,8 @@ function normalizePhone(phone: string): string {
 export interface SalesApplicationMatch {
   name: string;
   phone: string;
+  /** "Nam" | "Nữ" | "" */
+  gender: string;
 }
 
 // Looks up a candidate in the sales screening table ("(NEW) Form tuyển
@@ -317,6 +326,7 @@ export async function findSalesApplicationByPhone(
   const fields = await getFields(token, tableId);
   const nameField = resolveFieldName(fields, "họ tên");
   const phoneField = resolveFieldName(fields, "số điện thoại liên hệ");
+  const genderField = tryResolveFieldName(fields, "giới tính");
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;
   let pageToken: string | undefined;
@@ -345,7 +355,12 @@ export async function findSalesApplicationByPhone(
       const phoneStr = typeof rawPhone === "string" ? rawPhone : String(rawPhone ?? "");
       if (normalizePhone(phoneStr) === target) {
         const rawName = item.fields[nameField];
-        return { name: typeof rawName === "string" ? rawName : String(rawName ?? ""), phone: phoneStr };
+        const rawGender = genderField ? item.fields[genderField] : "";
+        return {
+          name: typeof rawName === "string" ? rawName : String(rawName ?? ""),
+          phone: phoneStr,
+          gender: typeof rawGender === "string" ? rawGender : "",
+        };
       }
     }
 

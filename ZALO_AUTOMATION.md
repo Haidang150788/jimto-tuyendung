@@ -58,7 +58,8 @@ Mở bảng → **Automation** → tạo **3 automation riêng biệt**:
   "phone": "{{Số điện thoại liên hệ}}",
   "name": "{{Họ Tên}}",
   "position": "Tư vấn bán hàng",
-  "details": "{{Đã gọi}}"
+  "details": "{{Đã gọi}}",
+  "gender": "{{Giới tính}}"
 }
 ```
 > Gõ thông tin buổi phỏng vấn (giờ, địa điểm) vào ô ghi chú mà HR đang dùng
@@ -68,12 +69,12 @@ Mở bảng → **Automation** → tạo **3 automation riêng biệt**:
 ### Automation 2 — Từ chối
 Giống Automation 1, khác:
 - Điều kiện: TRẠNG THÁI **bằng** `Không phù hợp`
-- Body: đổi `"type": "reject"`, bỏ `details`.
+- Body: đổi `"type": "reject"`, bỏ `details` (giữ `gender`).
 
 ### Automation 3 — Xác nhận công việc
 Giống Automation 1, khác:
 - Điều kiện: TRẠNG THÁI **bằng** `Đã chốt ngày thử việc`
-- Body: đổi `"type": "offer"`, `details` nên ghi ngày bắt đầu làm việc.
+- Body: đổi `"type": "offer"`, `details` nên ghi ngày bắt đầu làm việc (giữ `gender`).
 
 ## 3. Triển khai bot
 

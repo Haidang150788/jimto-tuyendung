@@ -20,7 +20,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const match = await findSalesApplicationByPhone(phone);
-    return NextResponse.json({ found: Boolean(match), name: match?.name ?? null });
+    return NextResponse.json({
+      found: Boolean(match),
+      name: match?.name ?? null,
+      gender: match?.gender || null,
+    });
   } catch (err) {
     console.error("[api/zalo/lookup] Lookup failed:", err);
     return NextResponse.json({ error: "lookup_failed" }, { status: 502 });
