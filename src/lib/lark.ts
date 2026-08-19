@@ -1,3 +1,5 @@
+import { SALES_POSITION_TITLE, SALES_STEP2_FIELDS } from "./sales-application-form";
+
 const LARK_API_BASE = "https://open.larksuite.com/open-apis";
 
 interface CachedToken {
@@ -13,11 +15,11 @@ interface FieldInfo {
 /** Lark field type code for Date/DateTime columns. */
 const DATE_FIELD_TYPE = 5;
 
-// Applications for this exact job title go to the original web table
-// (LARK_TABLE_NAME); every other position goes to the shared HR sheet
-// (LARK_TABLE_NAME_OTHER, "DATA TUYỂN DỤNG") instead, since that's the one
-// recruiters already work from for every non-sales-floor role.
-const SALES_POSITION_TITLE = "nhân viên tư vấn bán hàng";
+// Applications for this exact job title go to the dedicated sales-screening
+// table (LARK_TABLE_NAME_SALES, "(NEW) Form tuyển dụng"); every other
+// position goes to the shared HR sheet (LARK_TABLE_NAME_OTHER, "DATA TUYỂN
+// DỤNG") instead, since that's the one recruiters already work from for
+// every non-sales-floor role.
 
 let cachedToken: CachedToken | null = null;
 const tableIdCache = new Map<string, string>(); // table name -> table_id
@@ -180,36 +182,55 @@ export interface ApplicationSubmission {
   /** Candidate's preferred work location(s), when the posting spans more than one. */
   location?: string;
   cvFile?: File | null;
+  /** Answers to SALES_STEP2_FIELDS, keyed by field key. Sales position only. */
+  step2?: Record<string, string>;
 }
 
-// "Danh sách ứng tuyển qua web" — Ngày, Họ tên, Số điện thoại, Email, Vị
-// trí, CV, Trạng thái, Ghi chú.
-async function submitToWebTable(token: string, submission: ApplicationSubmission) {
-  const tableId = await findTableId(token, process.env.LARK_TABLE_NAME ?? "");
+// "(NEW) Form tuyển dụng" — the dedicated screening form for "Nhân viên tư
+// vấn bán hàng". No email/CV column here by design (see SALES_STEP2_FIELDS
+// for the long-form questionnaire columns, resolved leniently so a missing
+// column just drops that one answer instead of failing the whole submit).
+async function submitToSalesTable(token: string, submission: ApplicationSubmission) {
+  const tableName = process.env.LARK_TABLE_NAME_SALES;
+  if (!tableName) {
+    throw new Error("LARK_TABLE_NAME_SALES is not configured");
+  }
+  const tableId = await findTableId(token, tableName);
   const fields = await getFields(token, tableId);
-
-  const dateField = fields.find(
-    (f) => normalize(f.name) === "ngày" || f.type === DATE_FIELD_TYPE,
-  );
 
   const record: RecordFields = {
     [resolveFieldName(fields, "họ tên")]: submission.name,
-    [resolveFieldName(fields, "số điện thoại")]: submission.phone,
-    [resolveFieldName(fields, "email")]: submission.email,
-    [resolveFieldName(fields, "vị trí")]: submission.position,
+    [resolveFieldName(fields, "số điện thoại liên hệ")]: submission.phone,
   };
-  if (dateField) {
-    record[dateField.name] =
-      dateField.type === DATE_FIELD_TYPE ? Date.now() : new Date().toLocaleDateString("vi-VN");
+
+  const positionField = tryResolveFieldName(fields, "vị trí ứng tuyển");
+  if (positionField) {
+    record[positionField] = submission.position;
   }
-  if (submission.cvFile && submission.cvFile.size > 0) {
-    const fileToken = await uploadFileToLark(token, submission.cvFile);
-    record[resolveFieldName(fields, "cv")] = [{ file_token: fileToken }];
-  }
+
   if (submission.location) {
-    const notesField = tryResolveFieldName(fields, "ghi chú");
-    if (notesField) {
-      record[notesField] = `Địa điểm mong muốn: ${submission.location}`;
+    const branchField = tryResolveFieldName(
+      fields,
+      "bạn mong muốn làm việc chi nhánh nào( dành cho vị trí tư vấn viên)",
+    );
+    const firstLocation = submission.location.split(",")[0]?.trim();
+    if (branchField && firstLocation) {
+      record[branchField] = firstLocation;
+    }
+  }
+
+  for (const def of SALES_STEP2_FIELDS) {
+    const value = submission.step2?.[def.key]?.trim();
+    if (!value) continue;
+    const larkFieldName = tryResolveFieldName(fields, def.key);
+    if (!larkFieldName) continue;
+
+    const larkField = fields.find((f) => f.name === larkFieldName);
+    if (larkField?.type === DATE_FIELD_TYPE) {
+      const ms = Date.parse(value);
+      if (!Number.isNaN(ms)) record[larkFieldName] = ms;
+    } else {
+      record[larkFieldName] = value;
     }
   }
 
@@ -265,10 +286,10 @@ async function submitToGeneralTable(token: string, submission: ApplicationSubmis
 
 export async function submitApplicationToLark(submission: ApplicationSubmission) {
   const token = await getTenantAccessToken();
-  const isSalesPosition = normalize(submission.position) === SALES_POSITION_TITLE;
+  const isSalesPosition = normalize(submission.position) === normalize(SALES_POSITION_TITLE);
 
   if (isSalesPosition) {
-    await submitToWebTable(token, submission);
+    await submitToSalesTable(token, submission);
   } else {
     await submitToGeneralTable(token, submission);
   }

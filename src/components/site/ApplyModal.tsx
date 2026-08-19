@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Paperclip, X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
+import { SALES_POSITION_TITLE, SALES_STEP2_FIELDS } from "@/lib/sales-application-form";
 
 interface ApplyModalProps {
   job: JobItem | null;
@@ -13,12 +14,20 @@ type Status = "idle" | "submitting" | "success" | "error";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
+function normalize(s: string): string {
+  return s.trim().toLowerCase();
+}
+
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
+  const isSalesPosition = job ? normalize(job.title) === normalize(SALES_POSITION_TITLE) : false;
+
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [cvFile, setCvFile] = useState<File | null>(null);
+  const [step2Answers, setStep2Answers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,13 +54,18 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     setCvFile(file);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleContinue(e: React.FormEvent) {
     e.preventDefault();
-    if (!job) return;
     if (needsLocationChoice && preferredLocations.length === 0) {
       setError("Vui lòng chọn ít nhất một địa điểm mong muốn.");
       return;
     }
+    setError(null);
+    setStep(2);
+  }
+
+  async function submit(step2: Record<string, string> | null) {
+    if (!job) return;
     setStatus("submitting");
     setError(null);
     try {
@@ -63,6 +77,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
       const locations = needsLocationChoice ? preferredLocations : job.location;
       if (locations.length > 0) formData.set("location", locations.join(", "));
       if (cvFile) formData.set("cv", cvFile);
+      if (step2) formData.set("step2", JSON.stringify(step2));
 
       const res = await fetch("/api/apply", { method: "POST", body: formData });
       if (!res.ok) throw new Error("submit_failed");
@@ -73,13 +88,34 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
     }
   }
 
+  function handleSimpleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (needsLocationChoice && preferredLocations.length === 0) {
+      setError("Vui lòng chọn ít nhất một địa điểm mong muốn.");
+      return;
+    }
+    submit(null);
+  }
+
+  function handleStep2Submit(e: React.FormEvent) {
+    e.preventDefault();
+    const missing = SALES_STEP2_FIELDS.find(
+      (f) => f.required && !(step2Answers[f.key] ?? "").trim(),
+    );
+    if (missing) {
+      setError(`Vui lòng điền: "${missing.label}"`);
+      return;
+    }
+    submit(step2Answers);
+  }
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
@@ -94,7 +130,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="rounded-full p-1.5 text-black/40 hover:bg-black/5 hover:text-black"
+            className="shrink-0 rounded-full p-1.5 text-black/40 hover:bg-black/5 hover:text-black"
           >
             <X className="size-4" />
           </button>
@@ -114,8 +150,89 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               Đóng
             </button>
           </div>
+        ) : isSalesPosition && step === 2 ? (
+          <form className="mt-5 flex flex-col gap-4" onSubmit={handleStep2Submit}>
+            {SALES_STEP2_FIELDS.map((field) => (
+              <div key={field.key} className="flex flex-col gap-1.5 text-sm">
+                <span className="font-semibold text-black/70">
+                  {field.label}
+                  {field.required && <span className="ml-0.5 text-brand">*</span>}
+                </span>
+                {field.hint && <span className="text-xs text-black/40">{field.hint}</span>}
+
+                {field.type === "radio" ? (
+                  <div className="flex flex-col gap-2">
+                    {field.options?.map((opt) => (
+                      <label
+                        key={opt}
+                        className={
+                          "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm " +
+                          (step2Answers[field.key] === opt
+                            ? "border-brand bg-brand/5 text-black"
+                            : "border-black/10 text-black/70")
+                        }
+                      >
+                        <input
+                          type="radio"
+                          name={field.key}
+                          checked={step2Answers[field.key] === opt}
+                          onChange={() =>
+                            setStep2Answers((prev) => ({ ...prev, [field.key]: opt }))
+                          }
+                          className="size-4 accent-brand"
+                        />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                ) : field.type === "date" ? (
+                  <input
+                    type="date"
+                    value={step2Answers[field.key] ?? ""}
+                    onChange={(e) =>
+                      setStep2Answers((prev) => ({ ...prev, [field.key]: e.target.value }))
+                    }
+                    className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={step2Answers[field.key] ?? ""}
+                    onChange={(e) =>
+                      setStep2Answers((prev) => ({ ...prev, [field.key]: e.target.value }))
+                    }
+                    className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                  />
+                )}
+              </div>
+            ))}
+
+            {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+            <div className="mt-1 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setStep(1);
+                }}
+                className="rounded-full border border-black/10 px-5 py-2.5 text-sm font-bold text-black/60 hover:bg-black/5"
+              >
+                Quay lại
+              </button>
+              <button
+                type="submit"
+                disabled={status === "submitting"}
+                className="flex-1 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {status === "submitting" ? "Đang gửi..." : "Gửi hồ sơ"}
+              </button>
+            </div>
+          </form>
         ) : (
-          <form className="mt-5 flex flex-col gap-3" onSubmit={handleSubmit}>
+          <form
+            className="mt-5 flex flex-col gap-3"
+            onSubmit={isSalesPosition ? handleContinue : handleSimpleSubmit}
+          >
             <input
               type="text"
               required
@@ -132,13 +249,15 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               placeholder="Số điện thoại"
               className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
             />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
-            />
+            {!isSalesPosition && (
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+              />
+            )}
 
             {needsLocationChoice && (
               <div className="flex flex-col gap-1.5 text-sm">
@@ -162,23 +281,27 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               </div>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 rounded-lg border border-dashed border-black/20 px-3 py-2.5 text-left text-sm text-black/60 hover:border-brand hover:text-brand"
-            >
-              <Paperclip className="size-4 shrink-0" />
-              <span className="truncate">
-                {cvFile ? cvFile.name : "Đính kèm CV (PDF, DOC, DOCX)"}
-              </span>
-            </button>
+            {!isSalesPosition && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-black/20 px-3 py-2.5 text-left text-sm text-black/60 hover:border-brand hover:text-brand"
+                >
+                  <Paperclip className="size-4 shrink-0" />
+                  <span className="truncate">
+                    {cvFile ? cvFile.name : "Đính kèm CV (PDF, DOC, DOCX)"}
+                  </span>
+                </button>
+              </>
+            )}
 
             {error && <p className="text-xs font-medium text-red-500">{error}</p>}
             <button
@@ -186,7 +309,11 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               disabled={status === "submitting"}
               className="mt-1 rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {status === "submitting" ? "Đang gửi..." : "Gửi hồ sơ"}
+              {status === "submitting"
+                ? "Đang gửi..."
+                : isSalesPosition
+                  ? "Tiếp tục"
+                  : "Gửi hồ sơ"}
             </button>
           </form>
         )}

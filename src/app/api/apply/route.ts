@@ -17,6 +17,19 @@ export async function POST(req: NextRequest) {
   const cvEntry = formData.get("cv");
   const cvFile = cvEntry instanceof File && cvEntry.size > 0 ? cvEntry : null;
 
+  const step2Raw = formData.get("step2");
+  let step2: Record<string, string> | undefined;
+  if (typeof step2Raw === "string" && step2Raw) {
+    try {
+      const parsed: unknown = JSON.parse(step2Raw);
+      if (parsed && typeof parsed === "object") {
+        step2 = parsed as Record<string, string>;
+      }
+    } catch {
+      return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    }
+  }
+
   if (!name || !phone) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
@@ -25,7 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await submitApplicationToLark({ name, phone, email, position, location, cvFile });
+    await submitApplicationToLark({ name, phone, email, position, location, cvFile, step2 });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/apply] Failed to submit to Lark:", err);
