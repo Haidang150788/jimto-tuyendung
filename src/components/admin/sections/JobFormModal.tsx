@@ -5,9 +5,9 @@ import { X } from "lucide-react";
 import {
   JOB_DEPARTMENTS as DEPARTMENTS,
   JOB_EMPLOYMENT_TYPES as EMPLOYMENT_TYPES,
-  JOB_LOCATIONS as LOCATIONS,
   type JobItem,
 } from "@/lib/site-content";
+import { useSiteContent } from "@/lib/site-content-context";
 import { TextField, TextAreaField, CheckboxGroupField } from "../fields";
 
 interface JobFormModalProps {
@@ -18,6 +18,13 @@ interface JobFormModalProps {
 }
 
 export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalProps) {
+  const { content } = useSiteContent();
+  // Hidden locations stay off the pick list (so they can't be added to a new
+  // job) but a job that already has one keeps it — see LOCATION_OPTIONS below.
+  const visibleLocationNames = content.locations
+    .filter((l) => !l.hidden)
+    .map((l) => l.name);
+
   const [draft, setDraft] = useState<JobItem>(
     initial
       ? {
@@ -25,14 +32,13 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
           // Drop any stale free-text values from before these fields were
           // closed lists — otherwise they'd silently ride along on save.
           employmentType: initial.employmentType.filter((t) => EMPLOYMENT_TYPES.includes(t)),
-          location: initial.location.filter((l) => LOCATIONS.includes(l)),
         }
       : {
           id: 0,
           title: "",
           department: DEPARTMENTS[0],
           employmentType: [EMPLOYMENT_TYPES[0]],
-          location: [LOCATIONS[0]],
+          location: [],
           deadline: "",
           salary: "",
           description: "",
@@ -40,6 +46,11 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
           benefits: "",
         },
   );
+
+  // Union of currently-visible locations and whatever this job already has
+  // (which may include a now-hidden one) so nothing checked disappears from
+  // the list — it just can't be newly added once hidden.
+  const locationOptions = Array.from(new Set([...visibleLocationNames, ...draft.location]));
 
   const isValid =
     draft.title.trim() !== "" &&
@@ -105,12 +116,18 @@ export function JobFormModal({ initial, saving, onSave, onClose }: JobFormModalP
             onChange={(v) => setDraft({ ...draft, employmentType: v })}
           />
 
-          <CheckboxGroupField
-            label="Địa điểm"
-            options={LOCATIONS}
-            value={draft.location}
-            onChange={(v) => setDraft({ ...draft, location: v })}
-          />
+          {locationOptions.length > 0 ? (
+            <CheckboxGroupField
+              label="Địa điểm"
+              options={locationOptions}
+              value={draft.location}
+              onChange={(v) => setDraft({ ...draft, location: v })}
+            />
+          ) : (
+            <p className="text-xs font-medium text-black/40">
+              Chưa có địa điểm nào. Sang tab &ldquo;Địa điểm&rdquo; để thêm trước.
+            </p>
+          )}
           <TextField
             label="Hạn nộp (dd/mm/yyyy)"
             value={draft.deadline}

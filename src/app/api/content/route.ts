@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSiteContent, setJobs } from "@/lib/site-content-store";
-import type { JobItem } from "@/lib/site-content";
+import { getSiteContent, setJobs, setLocations } from "@/lib/site-content-store";
+import type { JobItem, LocationItem } from "@/lib/site-content";
 
 export async function GET() {
   const content = await getSiteContent();
@@ -15,11 +15,18 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const body = (await req.json().catch(() => null)) as { jobs?: JobItem[] } | null;
-  if (!body || !Array.isArray(body.jobs)) {
+  const body = (await req.json().catch(() => null)) as {
+    jobs?: JobItem[];
+    locations?: LocationItem[];
+  } | null;
+
+  if (!body || (!Array.isArray(body.jobs) && !Array.isArray(body.locations))) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const content = await setJobs(body.jobs);
+  let content = await getSiteContent();
+  if (Array.isArray(body.jobs)) content = await setJobs(body.jobs);
+  if (Array.isArray(body.locations)) content = await setLocations(body.locations);
+
   return NextResponse.json(content);
 }

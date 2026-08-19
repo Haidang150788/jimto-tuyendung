@@ -17,12 +17,21 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!job) return null;
+
+  const needsLocationChoice = job.location.length > 1;
+
+  function toggleLocation(loc: string) {
+    setPreferredLocations((prev) =>
+      prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc],
+    );
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -39,6 +48,10 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!job) return;
+    if (needsLocationChoice && preferredLocations.length === 0) {
+      setError("Vui lòng chọn ít nhất một địa điểm mong muốn.");
+      return;
+    }
     setStatus("submitting");
     setError(null);
     try {
@@ -47,6 +60,8 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
       formData.set("phone", phone);
       formData.set("email", email);
       formData.set("position", job.title);
+      const locations = needsLocationChoice ? preferredLocations : job.location;
+      if (locations.length > 0) formData.set("location", locations.join(", "));
       if (cvFile) formData.set("cv", cvFile);
 
       const res = await fetch("/api/apply", { method: "POST", body: formData });
@@ -124,6 +139,28 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               placeholder="Email"
               className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
             />
+
+            {needsLocationChoice && (
+              <div className="flex flex-col gap-1.5 text-sm">
+                <span className="font-semibold text-black/70">Địa điểm mong muốn</span>
+                <div className="flex flex-col gap-2 rounded-lg border border-black/10 px-3 py-2.5">
+                  {job.location.map((loc) => (
+                    <label
+                      key={loc}
+                      className="flex items-center gap-2.5 text-sm text-black/80"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={preferredLocations.includes(loc)}
+                        onChange={() => toggleLocation(loc)}
+                        className="size-4 rounded border-black/20 accent-brand"
+                      />
+                      {loc}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <input
               ref={fileInputRef}

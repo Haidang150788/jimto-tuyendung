@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const position = String(formData.get("position") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
   const cvEntry = formData.get("cv");
   const cvFile = cvEntry instanceof File && cvEntry.size > 0 ? cvEntry : null;
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await submitApplicationToLark({ name, phone, email, position, cvFile });
+    await submitApplicationToLark({ name, phone, email, position, location, cvFile });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/apply] Failed to submit to Lark:", err);

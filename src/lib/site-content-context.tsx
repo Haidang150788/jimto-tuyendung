@@ -10,7 +10,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_SITE_CONTENT, type JobItem, type SiteContent } from "./site-content";
+import {
+  DEFAULT_SITE_CONTENT,
+  type JobItem,
+  type LocationItem,
+  type SiteContent,
+} from "./site-content";
 import { getAdminToken } from "./admin-auth";
 
 interface SiteContentContextValue {
@@ -18,6 +23,7 @@ interface SiteContentContextValue {
   isLoaded: boolean;
   updateJobs: (updater: (jobs: JobItem[]) => JobItem[]) => Promise<void>;
   resetJobsToDefault: () => Promise<void>;
+  updateLocations: (updater: (locations: LocationItem[]) => LocationItem[]) => Promise<void>;
 }
 
 const SiteContentContext = createContext<SiteContentContextValue | null>(null);
@@ -47,10 +53,9 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const updateJobs = useCallback(async (updater: (jobs: JobItem[]) => JobItem[]) => {
+  async function persist(patch: { jobs?: JobItem[]; locations?: LocationItem[] }) {
     const prev = contentRef.current;
-    const nextJobs = updater(prev.jobs);
-    setContent({ ...prev, jobs: nextJobs }); // optimistic update
+    setContent({ ...prev, ...patch }); // optimistic update
 
     const token = getAdminToken();
     try {
@@ -60,7 +65,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
           ...(token ? { "x-admin-token": token } : {}),
         },
-        body: JSON.stringify({ jobs: nextJobs }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) throw new Error(`Save failed (${res.status})`);
       const saved = (await res.json()) as SiteContent;
@@ -69,16 +74,27 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       setContent(prev); // roll back the optimistic update
       throw err;
     }
-  }, []);
+  }
+
+  const updateJobs = useCallback(
+    (updater: (jobs: JobItem[]) => JobItem[]) => persist({ jobs: updater(contentRef.current.jobs) }),
+    [],
+  );
 
   const resetJobsToDefault = useCallback(
     () => updateJobs(() => DEFAULT_SITE_CONTENT.jobs),
     [updateJobs],
   );
 
+  const updateLocations = useCallback(
+    (updater: (locations: LocationItem[]) => LocationItem[]) =>
+      persist({ locations: updater(contentRef.current.locations) }),
+    [],
+  );
+
   const value = useMemo(
-    () => ({ content, isLoaded, updateJobs, resetJobsToDefault }),
-    [content, isLoaded, updateJobs, resetJobsToDefault],
+    () => ({ content, isLoaded, updateJobs, resetJobsToDefault, updateLocations }),
+    [content, isLoaded, updateJobs, resetJobsToDefault, updateLocations],
   );
 
   return <SiteContentContext.Provider value={value}>{children}</SiteContentContext.Provider>;

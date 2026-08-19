@@ -13,19 +13,18 @@ export interface JobItem {
   hidden?: boolean;
 }
 
-// Single source of truth for the closed option lists used by the admin job
-// form — also used server-side to drop stale free-text values left over
-// from before these fields were closed lists (see site-content-store.ts).
+// Closed option lists used by the admin job form — also used server-side to
+// drop stale free-text values left over from before these fields were
+// closed lists (see site-content-store.ts).
 export const JOB_DEPARTMENTS = ["Văn phòng", "Cửa hàng", "Kho"];
 export const JOB_EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Xoay ca"];
-export const JOB_LOCATIONS = [
-  "Phường Hạc Thành",
-  "Sầm Sơn",
-  "Yên Định",
-  "Thiệu Hoá",
-  "Quảng Xương",
-  "Triệu Sơn",
-];
+
+export interface LocationItem {
+  id: number;
+  name: string;
+  /** Hidden locations stay assignable to jobs that already use them, but drop out of "add to a job" and the admin's list of pickable options. */
+  hidden?: boolean;
+}
 
 export interface FeatureItem {
   title: string;
@@ -46,6 +45,7 @@ export interface SiteContent {
     subtitle: string;
   };
   jobs: JobItem[];
+  locations: LocationItem[];
   about: {
     eyebrow: string;
     heading: string;
@@ -224,6 +224,14 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       benefits:
         "- Lương thoả thuận theo năng lực\n- Thưởng hiệu quả công việc\n- Bảo hiểm sức khoẻ, du lịch hàng năm\n- Môi trường làm việc quốc tế hoá",
     },
+  ],
+  locations: [
+    { id: 1, name: "Phường Hạc Thành" },
+    { id: 2, name: "Sầm Sơn" },
+    { id: 3, name: "Yên Định" },
+    { id: 4, name: "Thiệu Hoá" },
+    { id: 5, name: "Quảng Xương" },
+    { id: 6, name: "Triệu Sơn" },
   ],
   about: {
     eyebrow: "Hành Trình Phát Triển",

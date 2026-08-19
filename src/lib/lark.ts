@@ -111,6 +111,11 @@ function resolveFieldName(fields: FieldInfo[], expectedName: string): string {
   return match.name;
 }
 
+/** Like resolveFieldName, but for optional columns — missing is fine. */
+function tryResolveFieldName(fields: FieldInfo[], expectedName: string): string | null {
+  return fields.find((f) => normalize(f.name) === normalize(expectedName))?.name ?? null;
+}
+
 async function uploadFileToLark(token: string, file: File): Promise<string> {
   const appToken = process.env.LARK_BASE_APP_TOKEN;
 
@@ -143,6 +148,8 @@ export interface ApplicationSubmission {
   phone: string;
   email: string;
   position: string;
+  /** Candidate's preferred work location(s), when the posting spans more than one. */
+  location?: string;
   cvFile?: File | null;
 }
 
@@ -169,6 +176,12 @@ export async function submitApplicationToLark(submission: ApplicationSubmission)
   if (submission.cvFile && submission.cvFile.size > 0) {
     const fileToken = await uploadFileToLark(token, submission.cvFile);
     record[resolveFieldName(fields, "cv")] = [{ file_token: fileToken }];
+  }
+  if (submission.location) {
+    const notesField = tryResolveFieldName(fields, "ghi chú");
+    if (notesField) {
+      record[notesField] = `Địa điểm mong muốn: ${submission.location}`;
+    }
   }
 
   const res = await fetch(
