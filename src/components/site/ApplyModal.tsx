@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { Paperclip, X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
-import { SALES_POSITION_TITLE, SALES_STEP2_FIELDS } from "@/lib/sales-application-form";
+import { isSalesPositionTitle, SALES_STEP2_FIELDS } from "@/lib/sales-application-form";
 
 interface ApplyModalProps {
   job: JobItem | null;
@@ -14,12 +14,8 @@ type Status = "idle" | "submitting" | "success" | "error";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
-function normalize(s: string): string {
-  return s.trim().toLowerCase();
-}
-
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
-  const isSalesPosition = job ? normalize(job.title) === normalize(SALES_POSITION_TITLE) : false;
+  const isSalesPosition = job ? isSalesPositionTitle(job.title) : false;
 
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");

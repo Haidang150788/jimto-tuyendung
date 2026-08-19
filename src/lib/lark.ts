@@ -1,4 +1,4 @@
-import { SALES_POSITION_TITLE, SALES_STEP2_FIELDS } from "./sales-application-form";
+import { isSalesPositionTitle, SALES_STEP2_FIELDS } from "./sales-application-form";
 
 const LARK_API_BASE = "https://open.larksuite.com/open-apis";
 
@@ -286,7 +286,7 @@ async function submitToGeneralTable(token: string, submission: ApplicationSubmis
 
 export async function submitApplicationToLark(submission: ApplicationSubmission) {
   const token = await getTenantAccessToken();
-  const isSalesPosition = normalize(submission.position) === normalize(SALES_POSITION_TITLE);
+  const isSalesPosition = isSalesPositionTitle(submission.position);
 
   if (isSalesPosition) {
     await submitToSalesTable(token, submission);

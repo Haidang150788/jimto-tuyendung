@@ -5,7 +5,18 @@
 // a genuinely deleted column just gets skipped instead of failing the whole
 // submission.
 
-export const SALES_POSITION_TITLE = "Nhân viên tư vấn bán hàng";
+export const SALES_POSITION_TITLE = "Tư vấn bán hàng";
+
+/**
+ * Whether a job title should use the 2-step sales screening form. Matches
+ * by substring rather than exact equality — the live posting is titled
+ * "TƯ VẤN BÁN HÀNG" (no "Nhân viên" prefix), and HR may retitle it again
+ * later ("Tư vấn bán hàng (Full-time)", etc.); this keeps matching as long
+ * as the core phrase is present, case/diacritic-position aside.
+ */
+export function isSalesPositionTitle(title: string): boolean {
+  return title.trim().toLowerCase().includes(SALES_POSITION_TITLE.toLowerCase());
+}
 
 export type Step2FieldType = "text" | "date" | "radio";
 
