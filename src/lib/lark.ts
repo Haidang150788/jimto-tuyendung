@@ -185,21 +185,24 @@ async function createRecord(
 
 // Best-effort write-back of the automated-outreach status onto a record —
 // e.g. "Đã chào mừng" right after the CV-received message goes out, or
-// "Đã hẹn phỏng vấn" once the interview-invite send succeeds. Callers treat
-// failures here as non-fatal (the actual email/Zalo send already happened;
-// this is just bookkeeping for HR) and alert the ops group instead of
-// throwing — see lark-alert.ts.
+// "Đã hẹn phỏng vấn" once the interview-invite send succeeds. Two separate
+// columns track the two channels ("Phản hồi Zalo" / "Phản hồi email") since
+// a candidate only ever gets one or the other. Callers treat failures here
+// as non-fatal (the actual email/Zalo send already happened; this is just
+// bookkeeping for HR) and alert the ops group instead of throwing — see
+// lark-alert.ts.
 export async function writeBotResponseStatus(
   tableName: string,
   recordId: string,
+  fieldLabel: string,
   status: string,
 ): Promise<void> {
   const token = await getTenantAccessToken();
   const tableId = await findTableId(token, tableName);
   const fields = await getFields(token, tableId);
-  const fieldName = tryResolveFieldName(fields, "phản hồi của bot");
+  const fieldName = tryResolveFieldName(fields, fieldLabel);
   if (!fieldName) {
-    throw new Error(`Không tìm thấy cột "Phản hồi của bot" trong bảng "${tableName}"`);
+    throw new Error(`Không tìm thấy cột "${fieldLabel}" trong bảng "${tableName}"`);
   }
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;

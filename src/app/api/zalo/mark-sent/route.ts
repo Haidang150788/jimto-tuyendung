@@ -11,10 +11,10 @@ const STATUS_BY_TYPE: Record<string, string> = {
 
 // Called by the Zalo bot right after it actually delivers a status message
 // (not when the job is queued — delivery can fail or be delayed) to write
-// "Phản hồi của bot" back onto the DATA TUYỂN DỤNG record HR is looking
-// at. Best-effort: a failure here doesn't mean the candidate wasn't
-// messaged, just that HR's tracking column wasn't updated — alerted to
-// the ops group either way so it doesn't go unnoticed.
+// "Phản hồi Zalo" back onto the DATA TUYỂN DỤNG record HR is looking at.
+// Best-effort: a failure here doesn't mean the candidate wasn't messaged,
+// just that HR's tracking column wasn't updated — alerted to the ops
+// group either way so it doesn't go unnoticed.
 export async function POST(req: NextRequest) {
   const expected = process.env.ZALO_WEBHOOK_SECRET;
   const provided = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -37,13 +37,14 @@ export async function POST(req: NextRequest) {
     await writeBotResponseStatus(
       process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
       recordId,
+      "phản hồi Zalo",
       status,
     );
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/zalo/mark-sent] Failed to write back status:", err);
     await sendLarkAlert(
-      `Đã gửi Zalo (${body?.type}) nhưng KHÔNG ghi được "Phản hồi của bot" cho bản ghi ${recordId}: ${err instanceof Error ? err.message : String(err)}`,
+      `Đã gửi Zalo (${body?.type}) nhưng KHÔNG ghi được "Phản hồi Zalo" cho bản ghi ${recordId}: ${err instanceof Error ? err.message : String(err)}`,
     );
     return NextResponse.json({ error: "write_failed" }, { status: 502 });
   }

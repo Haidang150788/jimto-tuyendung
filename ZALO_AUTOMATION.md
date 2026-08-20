@@ -22,7 +22,7 @@ HR đổi cột "Tình trạng" trong Lark (bảng "DATA TUYỂN DỤNG")
   → Lark Automation gọi POST /api/zalo/notify (web)
   → web xếp việc vào hàng đợi Redis
   → bot poll GET /api/zalo/pending, lấy UID đã lưu ở trên, gửi tin Zalo
-  → bot gọi POST /api/zalo/mark-sent để ghi lại "Phản hồi của bot"
+  → bot gọi POST /api/zalo/mark-sent để ghi lại "Phản hồi Zalo"
 ```
 
 Web **không** tự gửi Zalo — chỉ đóng vai trò tra cứu hồ sơ + hàng đợi. Việc
@@ -61,7 +61,7 @@ không dùng chung được nữa — xem ghi chú cuối mục này):
   - Body — bấm "chèn trường" để lấy đúng token, **kể cả `{{Record ID}}`**
     (thường nằm trong nhóm trường hệ thống, không phải nhóm cột dữ liệu
     thường — nếu Lark không cho chèn được, bỏ dòng `recordId` đi, mọi thứ
-    khác vẫn chạy bình thường, chỉ là cột "Phản hồi của bot" sẽ không được
+    khác vẫn chạy bình thường, chỉ là cột "Phản hồi Zalo" sẽ không được
     tự cập nhật):
 
 **Automation 1 — Từ chối CV** (Tình trạng = `Không đạt CV`):
@@ -107,8 +107,8 @@ Xem `zalo-recruit-bot/README.md` — cài đặt, quét QR đăng nhập số Za
    được lời cảm ơn ngay.
 3. Thêm 1 bản ghi test vào "DATA TUYỂN DỤNG" với đúng số điện thoại đó
    (Sđt), đổi Tình trạng sang `Hẹn phỏng vấn` — phải nhận được tin Zalo
-   trong vòng `POLL_INTERVAL_MS` (mặc định 20 giây), và cột "Phản hồi của
-   bot" của bản ghi đó tự chuyển thành "Đã hẹn phỏng vấn" (nếu automation
+   trong vòng `POLL_INTERVAL_MS` (mặc định 20 giây), và cột "Phản hồi
+   Zalo" của bản ghi đó tự chuyển thành "Đã hẹn phỏng vấn" (nếu automation
    có chèn `{{Record ID}}`).
 4. Lặp lại với `Không đạt CV`, `Không đạt phỏng vấn`, `Mời nhận viêc`.
 5. Nếu không nhận được: xem log bot (`pm2 logs zalo-recruit-bot`), group

@@ -93,19 +93,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // "Phản hồi của bot" chỉ tồn tại ở DATA TUYỂN DỤNG — recordId là null cho
-  // hồ sơ "Tư vấn bán hàng" (bảng screening riêng, không có cột này).
+  // "Phản hồi email" chỉ tồn tại ở DATA TUYỂN DỤNG — recordId là null cho
+  // hồ sơ "Tư vấn bán hàng" (bảng screening riêng, không có cột này). Ghi
+  // vào đây (không phải "Phản hồi Zalo") vì "Đã chào mừng" ở bước này luôn
+  // là email — hồ sơ Zalo/Tư vấn bán hàng không đi qua route này.
   if (recordId) {
     try {
       await writeBotResponseStatus(
         process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
         recordId,
+        "phản hồi email",
         "Đã chào mừng",
       );
     } catch (err) {
       console.error("[api/apply] Failed to write back bot status:", err);
       await sendLarkAlert(
-        `Đã nhận hồ sơ của ${name} nhưng KHÔNG ghi được "Phản hồi của bot": ${err instanceof Error ? err.message : String(err)}`,
+        `Đã nhận hồ sơ của ${name} nhưng KHÔNG ghi được "Phản hồi email": ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
