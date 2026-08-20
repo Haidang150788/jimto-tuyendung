@@ -14,14 +14,22 @@ const usingKv = Boolean(KV_URL && KV_TOKEN);
 // configured (it's already required for /admin to work at all).
 const memoryQueue: string[] = [];
 
+export type ZaloNotifyType = "cv_reject" | "interview" | "interview_reject" | "offer";
+
 export interface ZaloNotifyJob {
-  type: "interview" | "reject" | "offer";
+  type: ZaloNotifyType;
   phone: string;
   name: string;
   position: string;
   details?: string;
   /** "Nam" | "Nữ" | "" — used to personalize the Zalo message (see zalo-recruit-bot). */
   gender?: string;
+  /** DATA TUYỂN DỤNG record id (Lark's "Record ID" merge token), if the
+   * Automation exposed it — lets the bot write "Phản hồi của bot" back
+   * after it actually delivers the message (see /api/zalo/mark-sent).
+   * Undefined if HR's Lark UI didn't expose that token; write-back is then
+   * just skipped, the message still sends. */
+  recordId?: string;
 }
 
 async function redisCmd(...args: string[]): Promise<unknown> {

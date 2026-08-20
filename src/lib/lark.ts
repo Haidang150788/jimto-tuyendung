@@ -155,7 +155,11 @@ async function uploadFileToLark(token: string, file: File): Promise<string> {
 
 type RecordFields = Record<string, string | number | { file_token: string }[]>;
 
-async function createRecord(token: string, tableId: string, fields: RecordFields) {
+async function createRecord(
+  token: string,
+  tableId: string,
+  fields: RecordFields,
+): Promise<string> {
   const appToken = process.env.LARK_BASE_APP_TOKEN;
   const res = await fetch(
     `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records`,
@@ -168,9 +172,51 @@ async function createRecord(token: string, tableId: string, fields: RecordFields
       body: JSON.stringify({ fields }),
     },
   );
+  const data = (await res.json()) as {
+    code: number;
+    msg: string;
+    data?: { record?: { record_id: string } };
+  };
+  if (data.code !== 0 || !data.data?.record?.record_id) {
+    throw new Error(`Lark create record failed: ${data.msg} (code ${data.code})`);
+  }
+  return data.data.record.record_id;
+}
+
+// Best-effort write-back of the automated-outreach status onto a record —
+// e.g. "Đã chào mừng" right after the CV-received message goes out, or
+// "Đã hẹn phỏng vấn" once the interview-invite send succeeds. Callers treat
+// failures here as non-fatal (the actual email/Zalo send already happened;
+// this is just bookkeeping for HR) and alert the ops group instead of
+// throwing — see lark-alert.ts.
+export async function writeBotResponseStatus(
+  tableName: string,
+  recordId: string,
+  status: string,
+): Promise<void> {
+  const token = await getTenantAccessToken();
+  const tableId = await findTableId(token, tableName);
+  const fields = await getFields(token, tableId);
+  const fieldName = tryResolveFieldName(fields, "phản hồi của bot");
+  if (!fieldName) {
+    throw new Error(`Không tìm thấy cột "Phản hồi của bot" trong bảng "${tableName}"`);
+  }
+
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+  const res = await fetch(
+    `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields: { [fieldName]: status } }),
+    },
+  );
   const data = (await res.json()) as { code: number; msg: string };
   if (data.code !== 0) {
-    throw new Error(`Lark create record failed: ${data.msg} (code ${data.code})`);
+    throw new Error(`Lark update record failed: ${data.msg} (code ${data.code})`);
   }
 }
 
@@ -239,11 +285,16 @@ async function submitToSalesTable(token: string, submission: ApplicationSubmissi
   await createRecord(token, tableId, record);
 }
 
-// "DATA TUYỂN DỤNG" — the shared HR sheet for every other position. Vị trí
+// "DATA TUYỂN DỤNG" is the only table with a "Phản hồi của bot" write-back
+// column, so this is the only submit path whose caller needs the new
+// record's id back. — the shared HR sheet for every other position. Vị trí
 // ứng tuyển and Vị trí làm việc are single-select columns; Lark auto-adds a
 // new option the first time a value that doesn't exist yet is written, so
 // new job titles/locations just work without any manual setup in Lark.
-async function submitToGeneralTable(token: string, submission: ApplicationSubmission) {
+async function submitToGeneralTable(
+  token: string,
+  submission: ApplicationSubmission,
+): Promise<string> {
   const tableName = process.env.LARK_TABLE_NAME_OTHER;
   if (!tableName) {
     throw new Error("LARK_TABLE_NAME_OTHER is not configured");
@@ -288,7 +339,7 @@ async function submitToGeneralTable(token: string, submission: ApplicationSubmis
     record[resolveFieldName(fields, "cv ứng viên")] = [{ file_token: fileToken }];
   }
 
-  await createRecord(token, tableId, record);
+  return createRecord(token, tableId, record);
 }
 
 /** Strips everything but digits and drops a leading 84/0 so "0901234567",
@@ -370,13 +421,18 @@ export async function findSalesApplicationByPhone(
   return null;
 }
 
-export async function submitApplicationToLark(submission: ApplicationSubmission) {
+/** Returns the new record's id in "DATA TUYỂN DỤNG" (for the "Phản hồi của
+ * bot" write-back), or null for sales-position submissions — that table
+ * has no such column. */
+export async function submitApplicationToLark(
+  submission: ApplicationSubmission,
+): Promise<string | null> {
   const token = await getTenantAccessToken();
   const isSalesPosition = isSalesPositionTitle(submission.position);
 
   if (isSalesPosition) {
     await submitToSalesTable(token, submission);
-  } else {
-    await submitToGeneralTable(token, submission);
+    return null;
   }
+  return submitToGeneralTable(token, submission);
 }

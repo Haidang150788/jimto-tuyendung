@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { submitApplicationToLark } from "@/lib/lark";
+import { submitApplicationToLark, writeBotResponseStatus } from "@/lib/lark";
 import { sendCvReceivedEmail } from "@/lib/email";
 import { isSalesPositionTitle } from "@/lib/sales-application-form";
 import { extractEmailFromCv } from "@/lib/extract-email-from-cv";
+import { sendLarkAlert } from "@/lib/lark-alert";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -58,10 +59,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "email_required" }, { status: 400 });
   }
 
+  let recordId: string | null;
   try {
-    await submitApplicationToLark({ name, phone, email, position, location, gender, cvFile, step2 });
+    recordId = await submitApplicationToLark({
+      name,
+      phone,
+      email,
+      position,
+      location,
+      gender,
+      cvFile,
+      step2,
+    });
   } catch (err) {
     console.error("[api/apply] Failed to submit to Lark:", err);
+    await sendLarkAlert(
+      `Không lưu được hồ sơ ứng tuyển của ${name} (${phone}, vị trí "${position}") vào Lark: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return NextResponse.json({ error: "submit_failed" }, { status: 502 });
   }
 
@@ -73,6 +87,26 @@ export async function POST(req: NextRequest) {
       await sendCvReceivedEmail(email, name, position, gender);
     } catch (err) {
       console.error("[api/apply] Failed to send CV-received email:", err);
+      await sendLarkAlert(
+        `Không gửi được email xác nhận CV cho ${name} (${email}): ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  // "Phản hồi của bot" chỉ tồn tại ở DATA TUYỂN DỤNG — recordId là null cho
+  // hồ sơ "Tư vấn bán hàng" (bảng screening riêng, không có cột này).
+  if (recordId) {
+    try {
+      await writeBotResponseStatus(
+        process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
+        recordId,
+        "Đã chào mừng",
+      );
+    } catch (err) {
+      console.error("[api/apply] Failed to write back bot status:", err);
+      await sendLarkAlert(
+        `Đã nhận hồ sơ của ${name} nhưng KHÔNG ghi được "Phản hồi của bot": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
