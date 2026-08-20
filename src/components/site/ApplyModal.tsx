@@ -173,11 +173,12 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                 className="mt-2 flex w-full flex-col gap-1 rounded-xl border border-black/10 bg-black/[0.02] p-3 text-left"
               >
                 <span className="text-sm font-bold text-black">
-                  Nhắn Zalo để nhận cập nhật hồ sơ nhanh hơn
+                  Nhắn Zalo với Minh Phương để nhận cập nhật hồ sơ nhanh hơn
                 </span>
                 <span className="text-xs text-black/50">
-                  Mở Zalo, kết bạn và nhắn đúng số điện thoại bạn vừa đăng ký (
-                  {phone || "VD: 0901234567"}) — Jim Tồ sẽ báo kết quả qua Zalo thay vì gọi điện.
+                  Mở Zalo, kết bạn với <strong>Minh Phương</strong> và nhắn đúng số điện thoại
+                  bạn vừa đăng ký ({phone || "VD: 0901234567"}) để xác nhận hồ sơ — nếu không
+                  khớp, Minh Phương sẽ hỏi lại. Jim Tồ sẽ báo kết quả qua Zalo thay vì gọi điện.
                 </span>
               </a>
             )}
