@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     type?: string;
     email?: string;
     name?: string;
+    phone?: string;
     position?: string;
     details?: string;
     gender?: string;
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
   const type = body?.type ?? "";
   const email = body?.email?.trim() ?? "";
   const name = body?.name?.trim() ?? "";
+  const phone = body?.phone?.trim() ?? "";
   const position = body?.position?.trim() ?? "";
   const details = body?.details?.trim() ?? "";
   const recordId = body?.recordId?.trim() ?? "";
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
     } else if (type === "interview_reject") {
       await sendInterviewRejectionEmail(email, name, position, gender);
     } else {
-      await sendOfferEmail(email, name, position, details, gender);
+      await sendOfferEmail(email, name, phone, position, details, gender);
     }
   } catch (err) {
     console.error("[api/email/notify] Failed to send email:", err);

@@ -49,16 +49,6 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Renders free-text HR notes (e.g. interview time/location) as paragraphs. */
-function renderDetails(details: string): string {
-  return details
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => `<p style="margin:0 0 10px;">${escapeHtml(line)}</p>`)
-    .join("");
-}
-
 export type Gender = "Nam" | "Nữ" | "";
 
 /** "Anh <name>" / "Chị <name>" when gender is known, plain "<name>" (no
@@ -132,12 +122,16 @@ export async function sendInterviewInviteEmail(
   details: string,
   gender: Gender = "",
 ) {
+  const p = pronoun(gender, false);
+  const P = pronoun(gender, true);
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
-    <p style="margin:0 0 14px;">Chúc mừng bạn đã vượt qua vòng sơ tuyển cho vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ! Chúng tôi muốn mời bạn tham gia buổi phỏng vấn để tìm hiểu thêm về bạn.</p>
-    ${details ? renderDetails(details) : ""}
-    <p style="margin:14px 0;">Vui lòng phản hồi email này hoặc liên hệ lại để xác nhận lịch hẹn. Nếu có thay đổi, hãy báo cho chúng tôi sớm nhất có thể.</p>
-    <p style="margin:0;">Trân trọng,<br/>Đội ngũ Tuyển dụng Jim Tồ</p>
+    <p style="margin:0 0 14px;">Kính gửi: <strong>${salutation(name, gender)}</strong></p>
+    <p style="margin:0 0 14px;">Bộ phận Tuyển dụng của Hệ thống mẹ và bé Jim Tồ chúc mừng bạn đã vượt qua vòng sơ loại hồ sơ vị trí <strong>${escapeHtml(position)}</strong></p>
+    <p style="margin:0 0 14px;">Công ty trân trọng kính mời bạn tới tham dự buổi phỏng vấn được tổ chức tại văn phòng Công ty cụ thể như sau:</p>
+    <p style="margin:0 0 14px;"><strong>Thời gian, địa điểm phỏng vấn:</strong> ${details ? escapeHtml(details) : "(sẽ được thông báo cụ thể)"}</p>
+    <p style="margin:0 0 14px;">Kính mong ${P} phản hồi email này sớm để xác nhận tham gia phỏng vấn. Rất mong ${P} sắp xếp thời gian và có mặt đúng giờ theo lịch hẹn.</p>
+    <p style="margin:0 0 14px;">Nếu cần hỗ trợ hoặc có bất kỳ thắc mắc nào, vui lòng liên hệ Bộ phận Hành chính – Nhân sự qua số điện thoại <strong>0948 027 756</strong> (Ms. Tuyết Nhi).</p>
+    <p style="margin:0;">Trân trọng cảm ơn và hẹn gặp ${p} tại buổi phỏng vấn!<br/><br/>Bộ phận Hành chính - Nhân sự</p>
   `);
   await sendEmail(to, `Jim Tồ mời bạn tham gia phỏng vấn — ${position}`, html);
 }
@@ -145,16 +139,33 @@ export async function sendInterviewInviteEmail(
 export async function sendOfferEmail(
   to: string,
   name: string,
+  phone: string,
   position: string,
   details: string,
   gender: Gender = "",
 ) {
+  const greetPronoun = gender === "Nam" ? "Anh" : gender === "Nữ" ? "Chị" : "Bạn";
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
-    <p style="margin:0 0 14px;">Chúc mừng bạn đã chính thức trúng tuyển vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ!</p>
-    ${details ? renderDetails(details) : ""}
-    <p style="margin:14px 0;">Vui lòng phản hồi email này để xác nhận. Nếu có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với chúng tôi.</p>
-    <p style="margin:0;">Rất mong được chào đón bạn gia nhập đội ngũ Jim Tồ!<br/><br/>Trân trọng,<br/>Đội ngũ Tuyển dụng Jim Tồ</p>
+    <p style="margin:0 0 14px;">Gửi tới: <strong>${greetPronoun} ${escapeHtml(name)}</strong> &nbsp;&nbsp; SĐT: ${escapeHtml(phone)}</p>
+    <p style="margin:0 0 14px;">Chức danh công việc: <strong>${escapeHtml(position)}</strong> &nbsp;&nbsp; Email: ${escapeHtml(to)}</p>
+    <p style="margin:0 0 14px;">Công ty Cổ phần MomKid Việt Nam (&quot;Jim Tồ&quot;) trân trọng cảm ơn sự quan tâm của bạn về cơ hội hợp tác và làm việc tại Jim Tồ.</p>
+    <p style="margin:0 0 14px;">Bằng thư mời làm việc này, Chúng tôi hân hạnh được gửi tới bạn lời đề nghị làm việc tại Jim Tồ với các điều kiện và điều khoản như sau:</p>
+    <p style="margin:0 0 4px;"><strong>1. Tên công ty:</strong> Công ty Cổ phần Momkid Việt Nam</p>
+    <p style="margin:0 0 4px;"><strong>2. Địa điểm làm việc:</strong> 306 Nguyễn Trãi, Phường Hạc Thành, Tỉnh Thanh Hoá</p>
+    <p style="margin:0 0 4px;"><strong>3. Thời giờ làm việc:</strong> Sáng 7h30-11h30, Chiều: 13h00-17h00. Ngày nghỉ hàng tuần theo sự sắp xếp của công ty đảm bảo mỗi tuần NLĐ được nghỉ 1 ngày (24h liên tục).</p>
+    <p style="margin:0 0 4px;"><strong>4. Thời gian thử việc:</strong> ${details ? escapeHtml(details) : "(sẽ được thông báo cụ thể)"}</p>
+    <p style="margin:0 0 4px;"><strong>5. Mức lương:</strong> Theo hợp đồng được ký kết tại thời điểm nhận việc</p>
+    <p style="margin:0 0 14px;"><strong>6. Trách nhiệm:</strong> Hoàn thành các công việc theo Bản mô tả vị công việc, hợp đồng lao động, hợp đồng thử việc và các văn bản khác có liên quan theo quy định của Jim Tồ và Pháp luật.</p>
+    <p style="margin:0 0 4px;"><strong>7. Thư mời này sẽ tự động chấm dứt hiệu lực nếu:</strong></p>
+    <p style="margin:0 0 14px;">Jim Tồ không nhận được xác nhận đồng ý của bạn với thư mời này trong thời hạn 03 ngày. Bạn không đến làm việc tại Jim Tồ mà không có lý do chính đáng trong thời hạn 03 ngày làm việc, kể từ ngày bạn xác nhận bắt đầu làm việc tại Jim Tồ, hoặc thông tin trong hồ sơ tuyển dụng do bạn cung cấp là không chính xác, không khách quan và không trung thực. Thư mời này không phải là hợp đồng lao động. Quan hệ lao động giữa bạn và Jim Tồ chỉ được xác lập khi hợp đồng thử việc (nếu có)/hợp đồng lao động giữa bạn và Jim Tồ được ký kết.</p>
+    <p style="margin:0 0 4px;"><strong>8. Hồ sơ cần chuẩn bị:</strong></p>
+    <p style="margin:0 0 2px;">- Sơ yếu lý lịch (công chứng)</p>
+    <p style="margin:0 0 2px;">- Bản sao CCCD/CMND (công chứng)</p>
+    <p style="margin:0 0 2px;">- Bản sao Bằng cấp (nếu có) (công chứng)</p>
+    <p style="margin:0 0 14px;">- Giấy khám sức khoẻ + 1 Ảnh 3x4</p>
+    <p style="margin:0 0 14px;"><em>Tất cả những giấy tờ trên đều phải được xác nhận công chứng/sao y bản chính và hoàn thiện trong vòng 7 ngày từ ngày làm việc đầu tiên.</em></p>
+    <p style="margin:0 0 14px;">Sau khi nhận được thông tin xác nhận thư mời làm việc của bạn, Bộ phận tiếp nhận nhân sự của Jim Tồ sẽ hướng dẫn bạn hoàn thiện thông tin, thủ tục trước khi gia nhập Jim Tồ. Chúng tôi hy vọng được sớm tiếp nhận bạn vào làm việc, hợp tác và phát triển bền vững cùng Jim Tồ.</p>
+    <p style="margin:0;">Trân trọng cảm ơn!</p>
   `);
-  await sendEmail(to, `Chúc mừng bạn đã trúng tuyển vị trí ${position} tại Jim Tồ!`, html);
+  await sendEmail(to, `Thư mời nhận việc — ${position} tại Jim Tồ`, html);
 }

@@ -66,9 +66,9 @@ Giống Automation 1, đổi `"type": "interview_reject"`, không cần `details
 
 ### Automation 4 — Xác nhận công việc + hẹn ngày bắt đầu (Tình trạng = `Mời nhận viêc`)
 
-Giống Automation 1, đổi `"type": "offer"`, thêm `"details": "{{Ghi chú}}"`.
+Giống Automation 1, đổi `"type": "offer"`, thêm `"details": "{{Ghi chú}}"` và `"phone": "{{Sđt}}"` (thư mời nhận việc có in số điện thoại ứng viên).
 
-> Gõ vào **Ghi chú** thông tin ngày bắt đầu làm việc trước khi đổi Tình trạng, ví dụ: `Ngày bắt đầu làm việc: Thứ Hai, 03/11/2026. Vui lòng có mặt lúc 8h00 tại văn phòng để nhận việc.`
+> Gõ vào **Ghi chú** thời gian thử việc trước khi đổi Tình trạng, ví dụ: `Từ ngày 10/08/2026 đến ngày 10/10/2026`.
 
 ## 4. Kiểm tra thử
 
