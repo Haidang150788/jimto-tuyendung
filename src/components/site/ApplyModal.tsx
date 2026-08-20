@@ -163,7 +163,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
           <div className="mt-6 flex flex-col items-center gap-2 py-4 text-center">
             <p className="text-base font-bold text-black">Đã gửi hồ sơ thành công!</p>
 
-            {isSalesPosition && ZALO_BOT_LINK ? (
+            {ZALO_BOT_LINK ? (
               <>
                 <p className="text-sm text-black/50">
                   Chỉ còn 1 bước bắt buộc để bắt đầu quy trình tuyển dụng:
@@ -180,8 +180,8 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                   <span className="text-xs text-black/60">
                     Mở Zalo, kết bạn với <strong>Minh Phương</strong> và nhắn đúng số điện thoại
                     bạn vừa đăng ký ({phone || "VD: 0901234567"}) để xác nhận hồ sơ — nếu không
-                    khớp, Minh Phương sẽ hỏi lại. Bộ phận tuyển dụng chỉ liên hệ được với bạn qua
-                    Zalo, không gọi điện, nên nếu bỏ qua bước này hồ sơ sẽ không được xử lý tiếp.
+                    khớp, Minh Phương sẽ hỏi lại. Bộ phận tuyển dụng sẽ trao đổi kết quả qua Zalo,
+                    nên nếu bỏ qua bước này hồ sơ sẽ không được xử lý tiếp.
                   </span>
                 </a>
                 <button

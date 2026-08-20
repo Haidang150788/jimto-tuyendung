@@ -354,33 +354,27 @@ function normalizePhone(phone: string): string {
   return digits;
 }
 
-export interface SalesApplicationMatch {
+export interface ApplicationMatch {
   name: string;
   phone: string;
   /** "Nam" | "Nữ" | "" */
   gender: string;
+  position: string;
 }
 
-// Looks up a candidate in the sales screening table ("(NEW) Form tuyển
-// dụng") by phone number — used by the recruitment Zalo bot to recognize a
-// candidate on their first inbound message (see ZALO_AUTOMATION.md). This
-// table has no stable per-record webhook-friendly key other than phone, so
-// we paginate the whole table and compare normalized digits rather than an
-// exact-string filter, which would miss "0901234567" vs "+84901234567".
-export async function findSalesApplicationByPhone(
-  phone: string,
-): Promise<SalesApplicationMatch | null> {
-  const target = normalizePhone(phone);
-  if (!target) return null;
-
-  const token = await getTenantAccessToken();
-  const tableName = process.env.LARK_TABLE_NAME_SALES;
-  if (!tableName) throw new Error("LARK_TABLE_NAME_SALES is not configured");
+async function findInTable(
+  token: string,
+  tableName: string,
+  nameLabel: string,
+  phoneLabel: string,
+  target: string,
+): Promise<ApplicationMatch | null> {
   const tableId = await findTableId(token, tableName);
   const fields = await getFields(token, tableId);
-  const nameField = resolveFieldName(fields, "họ tên");
-  const phoneField = resolveFieldName(fields, "số điện thoại liên hệ");
+  const nameField = resolveFieldName(fields, nameLabel);
+  const phoneField = resolveFieldName(fields, phoneLabel);
   const genderField = tryResolveFieldName(fields, "giới tính");
+  const positionField = tryResolveFieldName(fields, "vị trí ứng tuyển");
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;
   let pageToken: string | undefined;
@@ -410,16 +404,47 @@ export async function findSalesApplicationByPhone(
       if (normalizePhone(phoneStr) === target) {
         const rawName = item.fields[nameField];
         const rawGender = genderField ? item.fields[genderField] : "";
+        const rawPosition = positionField ? item.fields[positionField] : "";
         return {
           name: typeof rawName === "string" ? rawName : String(rawName ?? ""),
           phone: phoneStr,
           gender: typeof rawGender === "string" ? rawGender : "",
+          position: typeof rawPosition === "string" ? rawPosition : String(rawPosition ?? ""),
         };
       }
     }
 
     pageToken = data.data?.has_more ? data.data?.page_token : undefined;
   } while (pageToken);
+
+  return null;
+}
+
+// Looks up a candidate by phone number across BOTH application tables —
+// used by the recruitment Zalo bot to recognize a candidate on their first
+// inbound message (see ZALO_AUTOMATION.md). Every position messages
+// Minh Phương now, not just sales, so a candidate could be sitting in
+// either "(NEW) Form tuyển dụng" (sales screening) or "DATA TUYỂN DỤNG"
+// (everyone else). Neither table has a stable webhook-friendly key other
+// than phone, so this paginates and compares normalized digits rather than
+// an exact-string filter, which would miss "0901234567" vs "+84901234567".
+export async function findApplicationByPhone(phone: string): Promise<ApplicationMatch | null> {
+  const target = normalizePhone(phone);
+  if (!target) return null;
+
+  const token = await getTenantAccessToken();
+
+  const salesTableName = process.env.LARK_TABLE_NAME_SALES;
+  if (salesTableName) {
+    const match = await findInTable(token, salesTableName, "họ tên", "số điện thoại liên hệ", target);
+    if (match) return match;
+  }
+
+  const generalTableName = process.env.LARK_TABLE_NAME_OTHER;
+  if (generalTableName) {
+    const match = await findInTable(token, generalTableName, "họ và tên", "sđt", target);
+    if (match) return match;
+  }
 
   return null;
 }
