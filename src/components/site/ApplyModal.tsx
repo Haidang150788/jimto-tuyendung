@@ -169,6 +169,10 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                   &quot;Gửi lời chào đến thư ký tuyển dụng Minh Phương để cập nhật liên tục tình
                   hình ứng tuyển bạn nhé&quot;
                 </p>
+                <p className="text-xs text-black/40">
+                  Chỉ cần nhắn &quot;Xin chào&quot; hoặc thả 1 biểu tượng cảm xúc bất kỳ — Minh
+                  Phương sẽ chủ động bắt chuyện với bạn.
+                </p>
                 <a
                   href={ZALO_BOT_LINK}
                   target="_blank"
