@@ -162,33 +162,50 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
         {status === "success" ? (
           <div className="mt-6 flex flex-col items-center gap-2 py-4 text-center">
             <p className="text-base font-bold text-black">Đã gửi hồ sơ thành công!</p>
-            <p className="text-sm text-black/50">
-              Cảm ơn bạn đã ứng tuyển. Bộ phận nhân sự sẽ liên hệ sớm nhất.
-            </p>
-            {isSalesPosition && ZALO_BOT_LINK && (
-              <a
-                href={ZALO_BOT_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 flex w-full flex-col gap-1 rounded-xl border border-black/10 bg-black/[0.02] p-3 text-left"
-              >
-                <span className="text-sm font-bold text-black">
-                  Nhắn Zalo với Minh Phương để nhận cập nhật hồ sơ nhanh hơn
-                </span>
-                <span className="text-xs text-black/50">
-                  Mở Zalo, kết bạn với <strong>Minh Phương</strong> và nhắn đúng số điện thoại
-                  bạn vừa đăng ký ({phone || "VD: 0901234567"}) để xác nhận hồ sơ — nếu không
-                  khớp, Minh Phương sẽ hỏi lại. Jim Tồ sẽ báo kết quả qua Zalo thay vì gọi điện.
-                </span>
-              </a>
+
+            {isSalesPosition && ZALO_BOT_LINK ? (
+              <>
+                <p className="text-sm text-black/50">
+                  Chỉ còn 1 bước bắt buộc để bắt đầu quy trình tuyển dụng:
+                </p>
+                <a
+                  href={ZALO_BOT_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex w-full flex-col gap-1 rounded-xl border-2 border-brand bg-brand/5 p-4 text-left"
+                >
+                  <span className="text-sm font-bold text-brand">
+                    ⚠️ Bắt buộc: Nhắn Zalo với Minh Phương ngay
+                  </span>
+                  <span className="text-xs text-black/60">
+                    Mở Zalo, kết bạn với <strong>Minh Phương</strong> và nhắn đúng số điện thoại
+                    bạn vừa đăng ký ({phone || "VD: 0901234567"}) để xác nhận hồ sơ — nếu không
+                    khớp, Minh Phương sẽ hỏi lại. Bộ phận tuyển dụng chỉ liên hệ được với bạn qua
+                    Zalo, không gọi điện, nên nếu bỏ qua bước này hồ sơ sẽ không được xử lý tiếp.
+                  </span>
+                </a>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-3 rounded-full px-5 py-2 text-sm font-bold text-black/50 hover:bg-black/5"
+                >
+                  Để sau
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-black/50">
+                  Cảm ơn bạn đã ứng tuyển. Bộ phận nhân sự sẽ liên hệ sớm nhất.
+                </p>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-3 rounded-full bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark"
+                >
+                  Đóng
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-3 rounded-full bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark"
-            >
-              Đóng
-            </button>
           </div>
         ) : isSalesPosition && step === 2 ? (
           <form className="mt-5 flex flex-col gap-4" onSubmit={handleStep2Submit}>
