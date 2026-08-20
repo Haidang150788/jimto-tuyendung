@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  sendCvRejectionEmail,
   sendInterviewInviteEmail,
+  sendInterviewRejectionEmail,
   sendOfferEmail,
-  sendRejectionEmail,
+  type Gender,
 } from "@/lib/email";
+import { writeBotResponseStatus } from "@/lib/lark";
+import { sendLarkAlert } from "@/lib/lark-alert";
 
-// Called by a Lark Base Automation webhook action when HR changes a
-// candidate's status in "DATA TUYỂN DỤNG" — see EMAIL_AUTOMATION.md for how
-// the automation rules are configured on the Lark side.
+const VALID_TYPES = ["cv_reject", "interview", "interview_reject", "offer"] as const;
+type NotifyType = (typeof VALID_TYPES)[number];
+
+const STATUS_BY_TYPE: Record<NotifyType, string> = {
+  cv_reject: "Đã từ chối CV",
+  interview: "Đã hẹn phỏng vấn",
+  interview_reject: "Đã từ chối PV",
+  offer: "Đã hẹn thử việc",
+};
+
+// Called by a Lark Base Automation webhook action when HR changes "Tình
+// trạng" in DATA TUYỂN DỤNG — see EMAIL_AUTOMATION.md for how the
+// automation rules are configured on the Lark side.
 export async function POST(req: NextRequest) {
   const expected = process.env.EMAIL_WEBHOOK_SECRET;
   const body = (await req.json().catch(() => null)) as {
@@ -18,6 +32,7 @@ export async function POST(req: NextRequest) {
     position?: string;
     details?: string;
     gender?: string;
+    recordId?: string;
   } | null;
 
   if (!expected || body?.secret !== expected) {
@@ -29,27 +44,50 @@ export async function POST(req: NextRequest) {
   const name = body?.name?.trim() ?? "";
   const position = body?.position?.trim() ?? "";
   const details = body?.details?.trim() ?? "";
+  const recordId = body?.recordId?.trim() ?? "";
   const genderRaw = body?.gender?.trim() ?? "";
-  const gender = genderRaw === "Nam" || genderRaw === "Nữ" ? genderRaw : "";
+  const gender: Gender = genderRaw === "Nam" || genderRaw === "Nữ" ? genderRaw : "";
 
   if (!email || !name || !position) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
-  if (!["interview", "reject", "offer"].includes(type)) {
+  if (!VALID_TYPES.includes(type as NotifyType)) {
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
   }
 
   try {
-    if (type === "interview") {
+    if (type === "cv_reject") {
+      await sendCvRejectionEmail(email, name, position, gender);
+    } else if (type === "interview") {
       await sendInterviewInviteEmail(email, name, position, details, gender);
-    } else if (type === "reject") {
-      await sendRejectionEmail(email, name, position, gender);
+    } else if (type === "interview_reject") {
+      await sendInterviewRejectionEmail(email, name, position, gender);
     } else {
       await sendOfferEmail(email, name, position, details, gender);
     }
-    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/email/notify] Failed to send email:", err);
+    await sendLarkAlert(
+      `Không gửi được email (${type}) cho ${name} (${email}): ${err instanceof Error ? err.message : String(err)}`,
+    );
     return NextResponse.json({ error: "send_failed" }, { status: 502 });
   }
+
+  if (recordId) {
+    try {
+      await writeBotResponseStatus(
+        process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
+        recordId,
+        "phản hồi email",
+        STATUS_BY_TYPE[type as NotifyType],
+      );
+    } catch (err) {
+      console.error("[api/email/notify] Failed to write back status:", err);
+      await sendLarkAlert(
+        `Đã gửi email (${type}) nhưng KHÔNG ghi được "Phản hồi email" cho bản ghi ${recordId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  return NextResponse.json({ ok: true });
 }

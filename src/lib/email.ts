@@ -68,19 +68,61 @@ function salutation(name: string, gender: Gender): string {
   return escapeHtml(`${prefix}${name}`);
 }
 
+/** Mid-sentence pronoun ("...cảm ơn ĐẠI_TỪ đã...") — "Anh"/"Chị" when
+ * gender is known, generic "Anh/Chị" when it isn't (never guessed). */
+function pronoun(gender: Gender, capitalized: boolean): string {
+  if (gender === "Nam") return "Anh";
+  if (gender === "Nữ") return "Chị";
+  return capitalized ? "Anh/Chị" : "anh/chị";
+}
+
 export async function sendCvReceivedEmail(
   to: string,
   name: string,
   position: string,
   gender: Gender = "",
 ) {
+  const p = pronoun(gender, false);
   const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
-    <p style="margin:0 0 14px;">Cảm ơn bạn đã quan tâm và ứng tuyển vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ.</p>
-    <p style="margin:0 0 14px;">Chúng tôi đã nhận được hồ sơ của bạn và sẽ tiến hành xem xét trong thời gian sớm nhất. Bộ phận nhân sự sẽ phản hồi trong vòng 24 giờ làm việc.</p>
-    <p style="margin:0;">Trân trọng,<br/>Đội ngũ Tuyển dụng Jim Tồ</p>
+    <p style="margin:0 0 14px;">Kính gửi <strong>${salutation(name, gender)}</strong>,</p>
+    <p style="margin:0 0 14px;">Hệ thống Mẹ &amp; Bé Jim Tồ đã nhận được CV ${p} gửi về ứng tuyển cho vị trí <strong>${escapeHtml(position)}</strong>.</p>
+    <p style="margin:0 0 14px;">Bộ phận tuyển dụng sẽ xem xét hồ sơ và sắp xếp phản hồi kết quả đến ${p} trong thời gian sớm nhất.</p>
+    <p style="margin:0;">Cảm ơn ${p} đã quan tâm và lựa chọn Hệ thống Mẹ &amp; Bé Jim Tồ.</p>
   `);
   await sendEmail(to, `Jim Tồ đã nhận được hồ sơ ứng tuyển của bạn`, html);
+}
+
+export async function sendCvRejectionEmail(
+  to: string,
+  name: string,
+  position: string,
+  gender: Gender = "",
+) {
+  const html = wrapEmail(`
+    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>, Hệ thống mẹ và bé Jim Tồ cảm ơn bạn đã quan tâm và ứng tuyển tại hệ thống. Sau khi xem xét, hiện tại hồ sơ của bạn chưa phù hợp với vị trí tuyển dụng đợt này.</p>
+    <p style="margin:0;">Hy vọng sẽ có dịp được kết nối và hợp tác cùng bạn trong những cơ hội phù hợp sắp tới. Chúc bạn nhiều thành công!</p>
+  `);
+  await sendEmail(to, `Kết quả ứng tuyển vị trí ${position} tại Jim Tồ`, html);
+}
+
+export async function sendInterviewRejectionEmail(
+  to: string,
+  name: string,
+  position: string,
+  gender: Gender = "",
+) {
+  const p = pronoun(gender, false);
+  const P = pronoun(gender, true);
+  const html = wrapEmail(`
+    <p style="margin:0 0 4px;font-weight:bold;">THƯ CẢM ƠN</p>
+    <p style="margin:0 0 14px;">Kính gửi: <strong>${salutation(name, gender)}</strong></p>
+    <p style="margin:0 0 14px;">Ban Giám đốc hệ thống mẹ và bé Jim Tồ bày tỏ lời cảm ơn chân thành đến ${p} đã nhiệt tình hưởng ứng lời mời cộng tác của Công ty chúng tôi trong đợt tuyển dụng vừa qua</p>
+    <p style="margin:0 0 14px;">Chúng tôi đánh giá cao khả năng, lòng nhiệt tình và thái độ tích cực mà ${P} muốn được góp sức cho sự phát triển lớn mạnh đối với Công ty. Đây là sự động viên to lớn đối với Công ty đang trên đà phát triển càng thêm vững tin chọn lựa, triển khai thực hiện các mục tiêu đã định cho tương lai.</p>
+    <p style="margin:0 0 14px;">Chúng tôi lấy làm tiếc vì chưa đủ điều kiện để được công tác ngay với ${P}. Song chúng tôi mạn phép cập nhật để lưu trữ hồ sơ của ${P} với hy vọng sẽ có cơ hội hợp tác trong một tương lai gần nhất.</p>
+    <p style="margin:0 0 14px;">Chúc ${P} gặt hái được nhiều thành công trong công việc.</p>
+    <p style="margin:0;">Trân trọng!</p>
+  `);
+  await sendEmail(to, `Kết quả phỏng vấn vị trí ${position} tại Jim Tồ`, html);
 }
 
 export async function sendInterviewInviteEmail(
@@ -98,22 +140,6 @@ export async function sendInterviewInviteEmail(
     <p style="margin:0;">Trân trọng,<br/>Đội ngũ Tuyển dụng Jim Tồ</p>
   `);
   await sendEmail(to, `Jim Tồ mời bạn tham gia phỏng vấn — ${position}`, html);
-}
-
-export async function sendRejectionEmail(
-  to: string,
-  name: string,
-  position: string,
-  gender: Gender = "",
-) {
-  const html = wrapEmail(`
-    <p style="margin:0 0 14px;">Xin chào <strong>${salutation(name, gender)}</strong>,</p>
-    <p style="margin:0 0 14px;">Cảm ơn bạn đã dành thời gian ứng tuyển vị trí <strong>${escapeHtml(position)}</strong> tại Jim Tồ.</p>
-    <p style="margin:0 0 14px;">Sau khi xem xét kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng hồ sơ của bạn chưa phù hợp với vị trí này ở thời điểm hiện tại. Chúng tôi đánh giá cao sự quan tâm của bạn và mong có cơ hội hợp tác trong tương lai.</p>
-    <p style="margin:0 0 14px;">Chúc bạn sớm tìm được công việc phù hợp.</p>
-    <p style="margin:0;">Trân trọng,<br/>Đội ngũ Tuyển dụng Jim Tồ</p>
-  `);
-  await sendEmail(to, `Kết quả ứng tuyển vị trí ${position} tại Jim Tồ`, html);
 }
 
 export async function sendOfferEmail(
