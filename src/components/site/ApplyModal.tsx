@@ -165,24 +165,17 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
 
             {ZALO_BOT_LINK ? (
               <>
-                <p className="text-sm text-black/50">
-                  Chỉ còn 1 bước bắt buộc để bắt đầu quy trình tuyển dụng:
+                <p className="mt-1 text-sm text-black/70">
+                  &quot;Gửi lời chào đến thư ký tuyển dụng Minh Phương để cập nhật liên tục tình
+                  hình ứng tuyển bạn nhé&quot;
                 </p>
                 <a
                   href={ZALO_BOT_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1 flex w-full flex-col gap-1 rounded-xl border-2 border-brand bg-brand/5 p-4 text-left"
+                  className="mt-2 flex animate-bounce items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand/30 hover:bg-brand-dark"
                 >
-                  <span className="text-sm font-bold text-brand">
-                    ⚠️ Bắt buộc: Nhắn Zalo với Minh Phương ngay
-                  </span>
-                  <span className="text-xs text-black/60">
-                    Mở Zalo, kết bạn với <strong>Minh Phương</strong> và nhắn đúng số điện thoại
-                    bạn vừa đăng ký ({phone || "VD: 0901234567"}) để xác nhận hồ sơ — nếu không
-                    khớp, Minh Phương sẽ hỏi lại. Bộ phận tuyển dụng sẽ trao đổi kết quả qua Zalo,
-                    nên nếu bỏ qua bước này hồ sơ sẽ không được xử lý tiếp.
-                  </span>
+                  💬 Bấm vào đây
                 </a>
                 <button
                   type="button"
