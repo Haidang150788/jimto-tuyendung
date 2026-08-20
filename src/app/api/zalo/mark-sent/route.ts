@@ -25,21 +25,21 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as {
     recordId?: string;
     type?: string;
+    table?: string;
   } | null;
   const recordId = body?.recordId?.trim() ?? "";
   const status = STATUS_BY_TYPE[body?.type ?? ""];
+  const tableName =
+    body?.table === "sales"
+      ? process.env.LARK_TABLE_NAME_SALES || "(NEW) Form tuyển dụng"
+      : process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG";
 
   if (!recordId || !status) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
 
   try {
-    await writeBotResponseStatus(
-      process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
-      recordId,
-      "phản hồi Zalo",
-      status,
-    );
+    await writeBotResponseStatus(tableName, recordId, "phản hồi Zalo", status);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/zalo/mark-sent] Failed to write back status:", err);

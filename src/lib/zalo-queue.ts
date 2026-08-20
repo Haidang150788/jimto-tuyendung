@@ -24,12 +24,17 @@ export interface ZaloNotifyJob {
   details?: string;
   /** "Nam" | "Nữ" | "" — used to personalize the Zalo message (see zalo-recruit-bot). */
   gender?: string;
-  /** DATA TUYỂN DỤNG record id (Lark's "Record ID" merge token), if the
-   * Automation exposed it — lets the bot write "Phản hồi của bot" back
-   * after it actually delivers the message (see /api/zalo/mark-sent).
-   * Undefined if HR's Lark UI didn't expose that token; write-back is then
-   * just skipped, the message still sends. */
+  /** Lark's "Record ID" merge token, if the Automation exposed it — lets
+   * the bot write "Phản hồi Zalo" back after it actually delivers the
+   * message (see /api/zalo/mark-sent). Undefined if HR's Lark UI didn't
+   * expose that token; write-back is then just skipped, the message still
+   * sends. */
   recordId?: string;
+  /** Which table `recordId` belongs to — "sales" for "(NEW) Form tuyển
+   * dụng", "other" for DATA TUYỂN DỤNG (default, for automations that
+   * predate this field). Both tables have their own "Phản hồi Zalo"
+   * column, so mark-sent needs to know which one to write. */
+  table?: "sales" | "other";
 }
 
 async function redisCmd(...args: string[]): Promise<unknown> {

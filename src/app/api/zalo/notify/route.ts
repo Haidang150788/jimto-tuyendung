@@ -4,11 +4,12 @@ import { sendLarkAlert } from "@/lib/lark-alert";
 
 const VALID_TYPES: ZaloNotifyType[] = ["cv_reject", "interview", "interview_reject", "offer"];
 
-// Called by a Lark Base Automation webhook action when HR changes "Tình
-// trạng" in DATA TUYỂN DỤNG — see ZALO_AUTOMATION.md. Mirrors
-// /api/email/notify but keyed by phone (sales candidates have no email)
-// and queues the job for the always-on Zalo bot to pick up, instead of
-// sending anything itself.
+// Called by a Lark Base Automation webhook action when HR changes the
+// status field in DATA TUYỂN DỤNG ("Tình trạng") or "(NEW) Form tuyển
+// dụng" ("TRẠNG THÁI") — see ZALO_AUTOMATION.md. Mirrors /api/email/notify
+// but keyed by phone (candidates messaging Minh Phương may not have an
+// email on file) and queues the job for the always-on Zalo bot to pick
+// up, instead of sending anything itself.
 export async function POST(req: NextRequest) {
   const expected = process.env.ZALO_WEBHOOK_SECRET;
   const body = (await req.json().catch(() => null)) as {
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
     details?: string;
     gender?: string;
     recordId?: string;
+    table?: string;
   } | null;
 
   if (!expected || body?.secret !== expected) {
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest) {
   const position = body?.position?.trim() ?? "";
   const details = body?.details?.trim() ?? "";
   const recordId = body?.recordId?.trim() ?? "";
+  const table = body?.table === "sales" ? "sales" : "other";
   const genderRaw = body?.gender?.trim() ?? "";
   const gender = genderRaw === "Nam" || genderRaw === "Nữ" ? genderRaw : "";
 
@@ -51,6 +54,7 @@ export async function POST(req: NextRequest) {
       details: details || undefined,
       gender: gender || undefined,
       recordId: recordId || undefined,
+      table,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {
