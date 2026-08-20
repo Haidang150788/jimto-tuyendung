@@ -77,7 +77,7 @@ không dùng chung được nữa — xem ghi chú cuối mục này):
 }
 ```
 
-**Automation 2 — Mời phỏng vấn** (Tình trạng = `Hẹn phỏng vấn`): đổi `"type": "interview"`, thêm `"details": "{{Ghi chú}}"` (gõ giờ/ngày phỏng vấn vào Ghi chú trước khi đổi Tình trạng).
+**Automation 2 — Mời phỏng vấn** (Tình trạng = `Hẹn phỏng vấn`): đổi `"type": "interview"`, thêm `"details": "{{Ghi chú}}"`. Tin nhắn không còn dòng địa chỉ cố định — HR cần gõ **đầy đủ cả giờ, ngày lẫn địa điểm** vào Ghi chú trước khi đổi Tình trạng, ví dụ: `Hẹn phỏng vấn lúc 9h ngày 25/8/2026 tại 306 Nguyễn Trãi phường Hạc Thành`.
 
 **Automation 3 — Từ chối sau phỏng vấn** (Tình trạng = `Không đạt phỏng vấn`): đổi `"type": "interview_reject"`, không cần `details`.
 
