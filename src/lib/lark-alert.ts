@@ -1,12 +1,15 @@
 import { createHmac } from "node:crypto";
 
-// Lark "Custom Bot" group webhook — posts straight into the ops group so
-// HR can see what the recruitment automation is doing without checking
-// server logs or reverse-engineering blank Lark columns. Uses Lark's
+// Lark "Custom Bot" group webhook — posts a message directly into the ops
+// group when something in the recruitment automation fails (send failure,
+// missing Lark field, etc.) so HR notices immediately instead of it only
+// sitting in a server log nobody reads. Success is visible directly in the
+// Lark tables ("Phản hồi email" / "Phản hồi Zalo" write-back), so this
+// stays error-only rather than doubling as an activity feed. Uses Lark's
 // documented signature scheme (HMAC-SHA256 of "{timestamp}\n{secret}" over
 // an empty message, base64-encoded) since "Signature Verification" is
 // enabled on this bot.
-async function post(text: string): Promise<void> {
+export async function sendLarkAlert(text: string): Promise<void> {
   const url = process.env.LARK_ALERT_WEBHOOK_URL;
   const secret = process.env.LARK_ALERT_WEBHOOK_SECRET;
   if (!url) return; // not configured — degrade to silent no-op, callers already log locally
@@ -15,7 +18,7 @@ async function post(text: string): Promise<void> {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const body: Record<string, unknown> = {
       msg_type: "text",
-      content: { text },
+      content: { text: `⚠️ [Tuyển dụng] ${text}` },
     };
     if (secret) {
       const stringToSign = `${timestamp}\n${secret}`;
@@ -30,21 +33,9 @@ async function post(text: string): Promise<void> {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      console.error(`[lark-alert] Gửi tin nhắn thất bại (${res.status}):`, await res.text());
+      console.error(`[lark-alert] Gửi cảnh báo thất bại (${res.status}):`, await res.text());
     }
   } catch (err) {
-    console.error("[lark-alert] Gửi tin nhắn thất bại:", err);
+    console.error("[lark-alert] Gửi cảnh báo thất bại:", err);
   }
-}
-
-/** Something failed — needs HR's attention. */
-export async function sendLarkAlert(text: string): Promise<void> {
-  await post(`⚠️ [Tuyển dụng] ${text}`);
-}
-
-/** Something worked — routine visibility into what the bot just did,
- * posted to the same group so it reads as one activity feed rather than
- * only ever hearing about failures. */
-export async function sendLarkActivity(text: string): Promise<void> {
-  await post(`✅ [Tuyển dụng] ${text}`);
 }

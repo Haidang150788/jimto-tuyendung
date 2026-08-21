@@ -7,7 +7,7 @@ import {
   type Gender,
 } from "@/lib/email";
 import { writeBotResponseStatus } from "@/lib/lark";
-import { sendLarkAlert, sendLarkActivity } from "@/lib/lark-alert";
+import { sendLarkAlert } from "@/lib/lark-alert";
 
 const VALID_TYPES = ["cv_reject", "interview", "interview_reject", "offer"] as const;
 type NotifyType = (typeof VALID_TYPES)[number];
@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ error: "send_failed" }, { status: 502 });
   }
-  await sendLarkActivity(`Đã gửi email "${STATUS_BY_TYPE[type as NotifyType]}" cho ${name} (${email}).`);
 
   if (recordId) {
     try {
