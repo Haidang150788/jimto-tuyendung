@@ -285,15 +285,24 @@ async function submitToSalesTable(token: string, submission: ApplicationSubmissi
     }
   }
 
+  // Đặt sẵn "Chưa bắt đầu" ngay khi tạo, để cột này luôn có nghĩa rõ ràng
+  // (chưa liên hệ) thay vì trống không phân biệt được với "chưa chạy tính
+  // năng" — ghi đè thành "Đã chào mừng" khi ứng viên thực sự nhắn Minh
+  // Phương lần đầu (xem zalo-recruit-bot).
+  const zaloStatusField = tryResolveFieldName(fields, "phản hồi Zalo");
+  if (zaloStatusField) {
+    record[zaloStatusField] = "Chưa bắt đầu";
+  }
+
   await createRecord(token, tableId, record);
 }
 
-// "DATA TUYỂN DỤNG" is the only table with a "Phản hồi của bot" write-back
-// column, so this is the only submit path whose caller needs the new
-// record's id back. — the shared HR sheet for every other position. Vị trí
+// "DATA TUYỂN DỤNG" — the shared HR sheet for every other position. Vị trí
 // ứng tuyển and Vị trí làm việc are single-select columns; Lark auto-adds a
 // new option the first time a value that doesn't exist yet is written, so
-// new job titles/locations just work without any manual setup in Lark.
+// new job titles/locations just work without any manual setup in Lark. Also
+// the only table whose caller needs the new record's id back, for the
+// "Phản hồi email" write-back.
 async function submitToGeneralTable(
   token: string,
   submission: ApplicationSubmission,
@@ -340,6 +349,13 @@ async function submitToGeneralTable(
   if (submission.cvFile && submission.cvFile.size > 0) {
     const fileToken = await uploadFileToLark(token, submission.cvFile);
     record[resolveFieldName(fields, "cv ứng viên")] = [{ file_token: fileToken }];
+  }
+
+  // Đặt sẵn "Chưa bắt đầu" ngay khi tạo — xem ghi chú tương tự ở
+  // submitToSalesTable.
+  const zaloStatusField = tryResolveFieldName(fields, "phản hồi Zalo");
+  if (zaloStatusField) {
+    record[zaloStatusField] = "Chưa bắt đầu";
   }
 
   return createRecord(token, tableId, record);
