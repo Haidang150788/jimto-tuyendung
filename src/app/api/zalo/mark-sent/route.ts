@@ -9,6 +9,7 @@ const STATUS_BY_TYPE: Record<string, string> = {
   interview_reject: "Đã từ chối PV",
   offer: "Đã hẹn thử việc",
   proactive_nudge: "Đã nhắn trước",
+  proactive_nudge_failed: "Lỗi nhắn trước - cần gọi điện",
 };
 
 // Called by the Zalo bot right after it actually delivers a status message

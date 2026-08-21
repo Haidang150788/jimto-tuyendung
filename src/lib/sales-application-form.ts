@@ -18,6 +18,19 @@ export function isSalesPositionTitle(title: string): boolean {
   return title.trim().toLowerCase().includes(SALES_POSITION_TITLE.toLowerCase());
 }
 
+// Positions that get the Zalo CTA (Minh Phương) on top of email, without
+// using the 2-step sales screening form — currently just "Cửa hàng
+// trưởng" per Sếp's request (21/08/2026). Sales positions always qualify
+// too; kept as a separate list so adding one here never accidentally
+// switches a position onto the sales form.
+const ZALO_CTA_EXTRA_TITLES = ["Cửa hàng trưởng"];
+
+export function isZaloCtaPosition(title: string): boolean {
+  if (isSalesPositionTitle(title)) return true;
+  const normalized = title.trim().toLowerCase();
+  return ZALO_CTA_EXTRA_TITLES.some((t) => normalized.includes(t.toLowerCase()));
+}
+
 export type Step2FieldType = "text" | "date" | "radio";
 
 export interface Step2FieldDef {

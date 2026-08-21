@@ -1,4 +1,8 @@
-import { isSalesPositionTitle, SALES_STEP2_FIELDS } from "./sales-application-form";
+import {
+  isSalesPositionTitle,
+  isZaloCtaPosition,
+  SALES_STEP2_FIELDS,
+} from "./sales-application-form";
 
 const LARK_API_BASE = "https://open.larksuite.com/open-apis";
 
@@ -351,11 +355,15 @@ async function submitToGeneralTable(
     record[resolveFieldName(fields, "cv ứng viên")] = [{ file_token: fileToken }];
   }
 
-  // Đặt sẵn "Chưa bắt đầu" ngay khi tạo — xem ghi chú tương tự ở
-  // submitToSalesTable.
+  // "Chưa bắt đầu" chỉ có ý nghĩa cho các vị trí thực sự dùng kênh Zalo
+  // (sales + "Cửa hàng trưởng" — xem isZaloCtaPosition). Các vị trí văn
+  // phòng còn lại chỉ chạy email, nên đặt "Không áp dụng" (Sếp đã thêm sẵn
+  // option này trong Lark) để cột không bị hiểu nhầm là "đang chờ Zalo".
   const zaloStatusField = tryResolveFieldName(fields, "phản hồi Zalo");
   if (zaloStatusField) {
-    record[zaloStatusField] = "Chưa bắt đầu";
+    record[zaloStatusField] = isZaloCtaPosition(submission.position)
+      ? "Chưa bắt đầu"
+      : "Không áp dụng";
   }
 
   return createRecord(token, tableId, record);

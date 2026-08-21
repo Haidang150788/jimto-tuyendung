@@ -3,7 +3,11 @@
 import { useRef, useState } from "react";
 import { Check, Copy, Paperclip, X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
-import { isSalesPositionTitle, SALES_STEP2_FIELDS } from "@/lib/sales-application-form";
+import {
+  isSalesPositionTitle,
+  isZaloCtaPosition,
+  SALES_STEP2_FIELDS,
+} from "@/lib/sales-application-form";
 
 interface ApplyModalProps {
   job: JobItem | null;
@@ -26,6 +30,7 @@ const ZALO_BOT_LINK = ZALO_BOT_PHONE
 
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const isSalesPosition = job ? isSalesPositionTitle(job.title) : false;
+  const showZaloCta = job ? isZaloCtaPosition(job.title) : false;
 
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
@@ -176,7 +181,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
           <div className="mt-6 flex flex-col items-center gap-2 py-4 text-center">
             <p className="text-base font-bold text-black">Đã gửi hồ sơ thành công!</p>
 
-            {isSalesPosition && ZALO_BOT_LINK ? (
+            {showZaloCta && ZALO_BOT_LINK ? (
               <>
                 <p className="mt-1 text-sm text-black/70">
                   &quot;Gửi lời chào đến thư ký tuyển dụng Minh Phương để cập nhật liên tục tình
