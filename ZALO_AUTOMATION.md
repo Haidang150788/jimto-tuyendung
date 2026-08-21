@@ -1,24 +1,33 @@
 # Luồng Zalo cho ứng viên tuyển dụng
 
-Ứng viên nào cũng nhắn Zalo với **Minh Phương** (bot chạy trên tài khoản
-Zalo riêng — xem project `zalo-recruit-bot`, thư mục anh em, ngoài repo
-này) sau khi nộp hồ sơ trên web, không phân biệt vị trí. 4 loại kết quả
-(từ chối CV / mời phỏng vấn / từ chối sau phỏng vấn / mời nhận việc) được
-gửi qua Zalo, độc lập với việc ứng viên đó có email hay không (xem thêm
-`EMAIL_AUTOMATION.md` cho kênh email song song).
+Chỉ ứng viên **"Tư vấn bán hàng"** (khối tư vấn viên, không có email) mới
+đi qua Zalo với **Minh Phương** (bot chạy trên tài khoản Zalo riêng — xem
+project `zalo-recruit-bot`, thư mục anh em, ngoài repo này). Ứng viên vị
+trí văn phòng chỉ dùng kênh email (xem `EMAIL_AUTOMATION.md`) — CTA nhắn
+Minh Phương trên web không hiện với họ nữa (`isSalesPosition` gate trong
+`ApplyModal.tsx`).
 
-**Nguyên tắc:** ứng viên phải nhắn cho Minh Phương trước (không bao giờ
-nhắn trước cho người lạ) để tránh rủi ro tài khoản bị đánh dấu spam.
+4 loại kết quả (từ chối CV / mời phỏng vấn / từ chối sau phỏng vấn / mời
+nhận việc) được gửi qua Zalo cho ứng viên sales.
+
+**Nguyên tắc gốc:** ứng viên nên nhắn cho Minh Phương trước. Từ 21/08/2026
+có thêm ngoại lệ có chủ đích — xem mục "Nhắn trước (proactive nudge)" bên
+dưới — quyết định sau khi đối chiếu thực tế vận hành "thu-ky-kim" (bot Zalo
+nội bộ khác của Sếp, chủ động nhắn người lạ thường xuyên, chưa từng gặp
+rủi ro).
 
 ## Kiến trúc
 
 ```
-Ứng viên bấm "Bấm vào đây" trên web (sau khi nộp hồ sơ, mọi vị trí)
+Ứng viên "Tư vấn bán hàng" bấm "Bấm vào đây" trên web (sau khi nộp hồ sơ)
   → nhắn số điện thoại cho Minh Phương
   → bot gọi GET /api/zalo/lookup (web) — tra theo số điện thoại ở CẢ 2
-    bảng: "(NEW) Form tuyển dụng" (sales) và "DATA TUYỂN DỤNG" (còn lại)
+    bảng: "(NEW) Form tuyển dụng" (sales) và "DATA TUYỂN DỤNG" (còn lại,
+    vẫn khớp được phòng khi có người lạc vào nhắn, dù CTA không mời họ)
   → Minh Phương tự động cảm ơn đã ứng tuyển (đúng tên vị trí thật); không
     khớp thì hỏi lại số
+
+Nếu sau 15 phút ứng viên sales chưa tự nhắn — xem "Nhắn trước" bên dưới.
 
 HR đổi cột trạng thái trong Lark — "Tình trạng" (DATA TUYỂN DỤNG) hoặc
 "TRẠNG THÁI" ((NEW) Form tuyển dụng), 2 bảng có cùng bộ giá trị và cùng
@@ -29,6 +38,43 @@ cột "Phản hồi Zalo" để ghi lại kết quả
   → bot poll GET /api/zalo/pending, lấy UID đã lưu ở trên, gửi tin Zalo
   → bot gọi POST /api/zalo/mark-sent để ghi "Phản hồi Zalo" vào đúng bảng
 ```
+
+## Nhắn trước (proactive nudge)
+
+Chỉ áp dụng cho bảng "(NEW) Form tuyển dụng" (sales). Ứng viên sales có
+"Phản hồi Zalo" == `Chưa bắt đầu` (giá trị mặc định lúc tạo bản ghi — xem
+`submitToSalesTable` trong `src/lib/lark.ts`) và "Submitted on" đã quá 15
+phút được coi là chưa tự liên hệ, bot sẽ chủ động nhắn trước.
+
+```
+bot poll GET /api/zalo/nudge-candidates mỗi NUDGE_POLL_INTERVAL_MS (mặc
+định 5 phút) — web lọc sẵn điều kiện 15 phút + "Chưa bắt đầu"
+  → với mỗi ứng viên: bot gọi api.findUser(phone) lấy UID Zalo, rồi
+    api.sendFriendRequest(msg, uid) — vì hai bên CHƯA từng nhắn nên chưa
+    phải bạn bè, không dùng sendMessage được (xem sendProactiveNudge())
+  → thành công: lưu UID vào candidates.json như bình thường (để nếu họ
+    trả lời, bot xử lý qua đúng luồng hội thoại có sẵn), gọi mark-sent
+    với type "proactive_nudge" → cột "Phản hồi Zalo" thành "Đã nhắn
+    trước" (không còn == "Chưa bắt đầu" nữa, tự động không bị nhắn lại)
+  → thất bại (không tìm thấy trên Zalo, bị chặn, lỗi mạng...): mark-sent
+    với type "proactive_nudge_failed" → "Lỗi nhắn trước - cần gọi điện",
+    báo group Lark để HR gọi tay
+```
+
+Nội dung: cảm ơn đã nộp hồ sơ + hứa phản hồi khi có thông tin từ bộ phận
+tuyển dụng (không hẹn thời gian cụ thể). Xoay vòng 3 cách diễn đạt khác
+nhau (`NUDGE_MESSAGE_VARIANTS` trong `zalo-recruit-bot/src/index.js`) để
+nội dung không lặp y hệt giữa các lần gửi.
+
+**Giới hạn an toàn** (env, có default, đặt trong `zalo-recruit-bot/.env`
+nếu muốn đổi):
+- `DAILY_NUDGE_LIMIT` (mặc định `10`) — tối đa số tin chủ động/ngày, tính
+  theo giờ Việt Nam, lưu trong `zalo-recruit-bot/data/nudge-log.json`.
+  Ứng viên vượt quá giới hạn ngày đó vẫn còn "Chưa bắt đầu", sẽ được nhắn
+  vào lượt poll của ngày hôm sau.
+- `NUDGE_POLL_INTERVAL_MS` (mặc định `300000` = 5 phút).
+- Nếu nhiều ứng viên đủ điều kiện cùng lúc, bot rải ngẫu nhiên 5–15 giây
+  giữa mỗi lượt gửi thay vì bắn liên tiếp.
 
 Web **không** tự gửi Zalo — chỉ đóng vai trò tra cứu hồ sơ + hàng đợi. Việc
 gửi thật sự do `zalo-recruit-bot` (chạy 24/7 trên máy Mac) thực hiện. Nếu
