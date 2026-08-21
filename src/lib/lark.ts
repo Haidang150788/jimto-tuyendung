@@ -366,6 +366,15 @@ async function submitToGeneralTable(
       : "Không áp dụng";
   }
 
+  // Cùng quy tắc với "Phản hồi Zalo": đặt "Chưa bắt đầu" ngay khi tạo, chỉ
+  // đổi thành "Đã chào mừng" sau khi email chào mừng THỰC SỰ gửi thành
+  // công (xem POST /api/apply) — trước đây ghi "Đã chào mừng" ngay lập
+  // tức bất kể gửi mail có thành công hay không.
+  const emailStatusField = tryResolveFieldName(fields, "phản hồi email");
+  if (emailStatusField) {
+    record[emailStatusField] = "Chưa bắt đầu";
+  }
+
   return createRecord(token, tableId, record);
 }
 

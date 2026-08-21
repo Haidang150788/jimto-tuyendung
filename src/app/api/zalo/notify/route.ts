@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pushZaloJob, type ZaloNotifyType } from "@/lib/zalo-queue";
 import { sendLarkAlert } from "@/lib/lark-alert";
+import { isZaloCtaPosition } from "@/lib/sales-application-form";
 
 const VALID_TYPES: ZaloNotifyType[] = ["cv_reject", "interview", "interview_reject", "offer"];
 
@@ -54,6 +55,16 @@ export async function POST(req: NextRequest) {
       `Automation gọi /api/zalo/notify với type "${type}" không hợp lệ — kiểm tra lại Automation. recordId: ${recordId || "?"}`,
     );
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
+  }
+
+  // Automation trên DATA TUYỂN DỤNG bắn cho MỌI vị trí khi "Tình trạng"
+  // đổi (Lark không lọc theo vị trí được ở bước trigger) — nhưng chỉ "Cửa
+  // hàng trưởng" thực sự dùng kênh Zalo ở bảng này (xem isZaloCtaPosition
+  // và ZALO_AUTOMATION.md). Bỏ qua êm cho các vị trí văn phòng còn lại:
+  // không xếp hàng đợi, không báo lỗi — họ chưa từng có UID và sẽ không
+  // bao giờ có, nên "gửi thất bại" ở đây không phải sự cố cần biết.
+  if (table === "other" && !isZaloCtaPosition(position)) {
+    return NextResponse.json({ ok: true, skipped: "not_zalo_eligible" });
   }
 
   try {

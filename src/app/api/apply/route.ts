@@ -82,6 +82,17 @@ export async function POST(req: NextRequest) {
   // The application is already recorded in Lark at this point — a failed
   // confirmation email shouldn't turn into a failed submission for the
   // candidate, so this is best-effort and never changes the response.
+  //
+  // "Phản hồi email" chỉ tồn tại ở DATA TUYỂN DỤNG — recordId là null cho
+  // hồ sơ "Tư vấn bán hàng" (bảng screening riêng, không có cột này). Ghi
+  // vào đây (không phải "Phản hồi Zalo") vì "Đã chào mừng" ở bước này luôn
+  // là email — hồ sơ Zalo/Tư vấn bán hàng không đi qua route này.
+  //
+  // Cùng quy tắc với "Phản hồi Zalo": chỉ ghi "Đã chào mừng" khi email
+  // THỰC SỰ gửi thành công — record đã được đặt sẵn "Chưa bắt đầu" lúc tạo
+  // (xem submitToGeneralTable), nên không gửi được (thiếu email, hoặc gửi
+  // lỗi) thì cột này giữ nguyên "Chưa bắt đầu", phản ánh đúng thực tế thay
+  // vì luôn báo "Đã chào mừng" như trước đây.
   if (email) {
     try {
       await sendCvReceivedEmail(email, name, position, gender);
@@ -90,26 +101,23 @@ export async function POST(req: NextRequest) {
       await sendLarkAlert(
         `Không gửi được email xác nhận CV cho ${name} (${email}): ${err instanceof Error ? err.message : String(err)}`,
       );
+      return NextResponse.json({ ok: true });
     }
-  }
 
-  // "Phản hồi email" chỉ tồn tại ở DATA TUYỂN DỤNG — recordId là null cho
-  // hồ sơ "Tư vấn bán hàng" (bảng screening riêng, không có cột này). Ghi
-  // vào đây (không phải "Phản hồi Zalo") vì "Đã chào mừng" ở bước này luôn
-  // là email — hồ sơ Zalo/Tư vấn bán hàng không đi qua route này.
-  if (recordId) {
-    try {
-      await writeBotResponseStatus(
-        process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
-        recordId,
-        "phản hồi email",
-        "Đã chào mừng",
-      );
-    } catch (err) {
-      console.error("[api/apply] Failed to write back bot status:", err);
-      await sendLarkAlert(
-        `Đã nhận hồ sơ của ${name} nhưng KHÔNG ghi được "Phản hồi email": ${err instanceof Error ? err.message : String(err)}`,
-      );
+    if (recordId) {
+      try {
+        await writeBotResponseStatus(
+          process.env.LARK_TABLE_NAME_OTHER || "DATA TUYỂN DỤNG",
+          recordId,
+          "phản hồi email",
+          "Đã chào mừng",
+        );
+      } catch (err) {
+        console.error("[api/apply] Failed to write back bot status:", err);
+        await sendLarkAlert(
+          `Đã gửi email chào mừng cho ${name} nhưng KHÔNG ghi được "Phản hồi email": ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
   }
 
