@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Paperclip, X } from "lucide-react";
+import { Check, Copy, Paperclip, X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
 import { isSalesPositionTitle, SALES_STEP2_FIELDS } from "@/lib/sales-application-form";
 
@@ -37,6 +37,19 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const [step2Answers, setStep2Answers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [phoneCopied, setPhoneCopied] = useState(false);
+
+  async function copyZaloPhone() {
+    if (!ZALO_BOT_PHONE) return;
+    try {
+      await navigator.clipboard.writeText(ZALO_BOT_PHONE);
+      setPhoneCopied(true);
+      setTimeout(() => setPhoneCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (rare, old browsers) — the number is
+      // already shown as plain text, so the candidate can select it by hand.
+    }
+  }
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!job) return null;
@@ -181,6 +194,30 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
                 >
                   💬 Bấm vào đây
                 </a>
+
+                <div className="mt-1 flex flex-col items-center gap-1.5 text-xs text-black/40">
+                  <span>
+                    Nếu Zalo không tự mở, mở app Zalo và tìm số{" "}
+                    <strong className="text-black/60">{ZALO_BOT_PHONE}</strong>, nhắn &quot;Xin
+                    chào&quot; nhé.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={copyZaloPhone}
+                    className="flex items-center gap-1 rounded-full border border-black/10 px-3 py-1 font-semibold text-black/60 hover:bg-black/5"
+                  >
+                    {phoneCopied ? (
+                      <>
+                        <Check className="size-3.5" /> Đã sao chép
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3.5" /> Sao chép số điện thoại
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={onClose}
