@@ -1,14 +1,21 @@
 # Luồng Zalo cho ứng viên tuyển dụng
 
-Chỉ ứng viên **"Tư vấn bán hàng"** (khối tư vấn viên, không có email) mới
-đi qua Zalo với **Minh Phương** (bot chạy trên tài khoản Zalo riêng — xem
-project `zalo-recruit-bot`, thư mục anh em, ngoài repo này). Ứng viên vị
-trí văn phòng chỉ dùng kênh email (xem `EMAIL_AUTOMATION.md`) — CTA nhắn
-Minh Phương trên web không hiện với họ nữa (`isSalesPosition` gate trong
-`ApplyModal.tsx`).
+Chỉ 2 nhóm vị trí đi qua Zalo với **Minh Phương** (bot chạy trên tài khoản
+Zalo riêng — xem project `zalo-recruit-bot`, thư mục anh em, ngoài repo
+này): **"Tư vấn bán hàng"** (khối tư vấn viên, không có email) và **"Cửa
+hàng trưởng"** (vị trí văn phòng nhưng nhận cả Zalo lẫn email — quyết định
+21/08/2026). Xem `isZaloCtaPosition()` trong `sales-application-form.ts`
+— danh sách này chỉ quyết định có hiện CTA/nhận Zalo hay không, KHÔNG đổi
+việc "Cửa hàng trưởng" vẫn dùng form văn phòng bình thường (email/CV, 1
+bước), không phải form sàng lọc 2 bước của sales.
+
+Các vị trí văn phòng còn lại chỉ dùng kênh email (xem
+`EMAIL_AUTOMATION.md`) — CTA nhắn Minh Phương trên web không hiện với họ,
+và cột "Phản hồi Zalo" được đặt sẵn `Không áp dụng` ngay lúc tạo bản ghi
+(thay vì `Chưa bắt đầu`) để không bị hiểu nhầm là "đang chờ Zalo".
 
 4 loại kết quả (từ chối CV / mời phỏng vấn / từ chối sau phỏng vấn / mời
-nhận việc) được gửi qua Zalo cho ứng viên sales.
+nhận việc) được gửi qua Zalo cho 2 nhóm vị trí trên.
 
 **Nguyên tắc gốc:** ứng viên nên nhắn cho Minh Phương trước. Từ 21/08/2026
 có thêm ngoại lệ có chủ đích — xem mục "Nhắn trước (proactive nudge)" bên
@@ -41,7 +48,10 @@ cột "Phản hồi Zalo" để ghi lại kết quả
 
 ## Nhắn trước (proactive nudge)
 
-Chỉ áp dụng cho bảng "(NEW) Form tuyển dụng" (sales). Ứng viên sales có
+Chỉ áp dụng cho bảng "(NEW) Form tuyển dụng" (sales) — **không** áp dụng
+cho "Cửa hàng trưởng" dù vị trí này cũng nhận Zalo, vì ứng viên đó nằm ở
+bảng "DATA TUYỂN DỤNG" và `findStaleSalesApplications()` chỉ quét bảng
+sales. Ứng viên sales có
 "Phản hồi Zalo" == `Chưa bắt đầu` (giá trị mặc định lúc tạo bản ghi — xem
 `submitToSalesTable` trong `src/lib/lark.ts`) và "Submitted on" đã quá 15
 phút được coi là chưa tự liên hệ, bot sẽ chủ động nhắn trước.
