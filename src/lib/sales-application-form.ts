@@ -113,12 +113,6 @@ export const SALES_STEP2_FIELDS: Step2FieldDef[] = [
     required: false,
   },
   {
-    key: "Bạn dự định gắn bó với công việc bao lâu? 2",
-    label: "Bạn dự định gắn bó với công việc bao lâu?",
-    type: "text",
-    required: false,
-  },
-  {
     key: "Kinh nghiệm làm việc (nếu có)",
     label: "Kinh nghiệm làm việc (nếu có)",
     hint: "Bạn đã từng làm việc ở đâu chưa? Cụ thể những việc bạn đã làm là gì? Mức lương cho từng công việc đó là bao nhiêu?",
