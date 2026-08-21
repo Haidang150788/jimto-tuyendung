@@ -485,42 +485,37 @@ export async function findApplicationByPhone(phone: string): Promise<Application
   return null;
 }
 
-export interface StaleSalesApplication {
+export interface StaleZaloApplication {
   recordId: string;
   name: string;
   phone: string;
   /** "Nam" | "Nữ" | "" */
   gender: string;
   position: string;
+  table: "sales" | "other";
 }
 
-// Candidates who applied for "Tư vấn bán hàng" and haven't messaged Minh
-// Phương yet, past the grace window — used by the proactive-nudge flow
-// (see ZALO_AUTOMATION.md). "Phản hồi Zalo" defaults to "Chưa bắt đầu" at
-// application time (see submitToSalesTable) and only ever changes once the
-// candidate messages in or the bot nudges them, so filtering on that exact
-// value naturally excludes anyone already handled — no separate "already
-// nudged" bookkeeping needed.
-export async function findStaleSalesApplications(
-  minAgeMinutes: number,
-): Promise<StaleSalesApplication[]> {
-  const tableName = process.env.LARK_TABLE_NAME_SALES;
-  if (!tableName) throw new Error("LARK_TABLE_NAME_SALES is not configured");
-
-  const token = await getTenantAccessToken();
+async function findStaleZaloInTable(
+  token: string,
+  tableName: string,
+  table: "sales" | "other",
+  nameLabel: string,
+  phoneLabel: string,
+  cutoff: number,
+  positionFilter?: (position: string) => boolean,
+): Promise<StaleZaloApplication[]> {
   const tableId = await findTableId(token, tableName);
   const fields = await getFields(token, tableId);
-  const nameField = resolveFieldName(fields, "họ tên");
-  const phoneField = resolveFieldName(fields, "số điện thoại liên hệ");
+  const nameField = resolveFieldName(fields, nameLabel);
+  const phoneField = resolveFieldName(fields, phoneLabel);
   const genderField = tryResolveFieldName(fields, "giới tính");
   const positionField = tryResolveFieldName(fields, "vị trí ứng tuyển");
   const statusField = tryResolveFieldName(fields, "phản hồi Zalo");
   const submittedField = tryResolveFieldName(fields, "submitted on");
   if (!statusField || !submittedField) return [];
 
-  const cutoff = Date.now() - minAgeMinutes * 60 * 1000;
   const appToken = process.env.LARK_BASE_APP_TOKEN;
-  const results: StaleSalesApplication[] = [];
+  const results: StaleZaloApplication[] = [];
   let pageToken: string | undefined;
 
   do {
@@ -547,16 +542,20 @@ export async function findStaleSalesApplications(
       const submittedAt = item.fields[submittedField];
       if (typeof submittedAt !== "number" || submittedAt > cutoff) continue;
 
+      const rawPosition = positionField ? item.fields[positionField] : "";
+      const position = typeof rawPosition === "string" ? rawPosition : String(rawPosition ?? "");
+      if (positionFilter && !positionFilter(position)) continue;
+
       const rawPhone = item.fields[phoneField];
       const rawName = item.fields[nameField];
       const rawGender = genderField ? item.fields[genderField] : "";
-      const rawPosition = positionField ? item.fields[positionField] : "";
       results.push({
         recordId: item.record_id,
         name: typeof rawName === "string" ? rawName : String(rawName ?? ""),
         phone: typeof rawPhone === "string" ? rawPhone : String(rawPhone ?? ""),
         gender: typeof rawGender === "string" ? rawGender : "",
-        position: typeof rawPosition === "string" ? rawPosition : String(rawPosition ?? ""),
+        position,
+        table,
       });
     }
 
@@ -564,6 +563,46 @@ export async function findStaleSalesApplications(
   } while (pageToken);
 
   return results;
+}
+
+// Candidates who haven't messaged Minh Phương yet, past the grace window —
+// used by the proactive-nudge flow (see ZALO_AUTOMATION.md). Covers both
+// tables: every "Tư vấn bán hàng" candidate in "(NEW) Form tuyển dụng", and
+// (only) "Cửa hàng trưởng" candidates in "DATA TUYỂN DỤNG" — the other
+// office positions there default to "Không áp dụng" instead of "Chưa bắt
+// đầu" (see submitToGeneralTable), so they're already excluded by the
+// status filter; the isZaloCtaPosition() check is just defense-in-depth in
+// case HR ever resets that field by hand on the wrong record. "Phản hồi
+// Zalo" only ever changes once the candidate messages in or the bot nudges
+// them, so filtering on "Chưa bắt đầu" naturally excludes anyone already
+// handled — no separate "already nudged" bookkeeping needed.
+export async function findStaleZaloApplications(
+  minAgeMinutes: number,
+): Promise<StaleZaloApplication[]> {
+  const token = await getTenantAccessToken();
+  const cutoff = Date.now() - minAgeMinutes * 60 * 1000;
+
+  const salesTableName = process.env.LARK_TABLE_NAME_SALES;
+  const otherTableName = process.env.LARK_TABLE_NAME_OTHER;
+
+  const [salesResults, otherResults] = await Promise.all([
+    salesTableName
+      ? findStaleZaloInTable(token, salesTableName, "sales", "họ tên", "số điện thoại liên hệ", cutoff)
+      : Promise.resolve([]),
+    otherTableName
+      ? findStaleZaloInTable(
+          token,
+          otherTableName,
+          "other",
+          "họ và tên",
+          "sđt",
+          cutoff,
+          isZaloCtaPosition,
+        )
+      : Promise.resolve([]),
+  ]);
+
+  return [...salesResults, ...otherResults];
 }
 
 /** Returns the new record's id in "DATA TUYỂN DỤNG" (for the "Phản hồi của
