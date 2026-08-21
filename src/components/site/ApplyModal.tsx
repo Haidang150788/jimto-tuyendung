@@ -176,7 +176,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
           <div className="mt-6 flex flex-col items-center gap-2 py-4 text-center">
             <p className="text-base font-bold text-black">Đã gửi hồ sơ thành công!</p>
 
-            {ZALO_BOT_LINK ? (
+            {isSalesPosition && ZALO_BOT_LINK ? (
               <>
                 <p className="mt-1 text-sm text-black/70">
                   &quot;Gửi lời chào đến thư ký tuyển dụng Minh Phương để cập nhật liên tục tình

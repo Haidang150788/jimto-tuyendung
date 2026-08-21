@@ -477,6 +477,87 @@ export async function findApplicationByPhone(phone: string): Promise<Application
   return null;
 }
 
+export interface StaleSalesApplication {
+  recordId: string;
+  name: string;
+  phone: string;
+  /** "Nam" | "Nữ" | "" */
+  gender: string;
+  position: string;
+}
+
+// Candidates who applied for "Tư vấn bán hàng" and haven't messaged Minh
+// Phương yet, past the grace window — used by the proactive-nudge flow
+// (see ZALO_AUTOMATION.md). "Phản hồi Zalo" defaults to "Chưa bắt đầu" at
+// application time (see submitToSalesTable) and only ever changes once the
+// candidate messages in or the bot nudges them, so filtering on that exact
+// value naturally excludes anyone already handled — no separate "already
+// nudged" bookkeeping needed.
+export async function findStaleSalesApplications(
+  minAgeMinutes: number,
+): Promise<StaleSalesApplication[]> {
+  const tableName = process.env.LARK_TABLE_NAME_SALES;
+  if (!tableName) throw new Error("LARK_TABLE_NAME_SALES is not configured");
+
+  const token = await getTenantAccessToken();
+  const tableId = await findTableId(token, tableName);
+  const fields = await getFields(token, tableId);
+  const nameField = resolveFieldName(fields, "họ tên");
+  const phoneField = resolveFieldName(fields, "số điện thoại liên hệ");
+  const genderField = tryResolveFieldName(fields, "giới tính");
+  const positionField = tryResolveFieldName(fields, "vị trí ứng tuyển");
+  const statusField = tryResolveFieldName(fields, "phản hồi Zalo");
+  const submittedField = tryResolveFieldName(fields, "submitted on");
+  if (!statusField || !submittedField) return [];
+
+  const cutoff = Date.now() - minAgeMinutes * 60 * 1000;
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+  const results: StaleSalesApplication[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const url = new URL(`${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records`);
+    url.searchParams.set("page_size", "100");
+    if (pageToken) url.searchParams.set("page_token", pageToken);
+
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = (await res.json()) as {
+      code: number;
+      msg: string;
+      data?: {
+        items?: { record_id: string; fields: Record<string, unknown> }[];
+        has_more?: boolean;
+        page_token?: string;
+      };
+    };
+    if (data.code !== 0) {
+      throw new Error(`Lark list records failed: ${data.msg} (code ${data.code})`);
+    }
+
+    for (const item of data.data?.items ?? []) {
+      if (item.fields[statusField] !== "Chưa bắt đầu") continue;
+      const submittedAt = item.fields[submittedField];
+      if (typeof submittedAt !== "number" || submittedAt > cutoff) continue;
+
+      const rawPhone = item.fields[phoneField];
+      const rawName = item.fields[nameField];
+      const rawGender = genderField ? item.fields[genderField] : "";
+      const rawPosition = positionField ? item.fields[positionField] : "";
+      results.push({
+        recordId: item.record_id,
+        name: typeof rawName === "string" ? rawName : String(rawName ?? ""),
+        phone: typeof rawPhone === "string" ? rawPhone : String(rawPhone ?? ""),
+        gender: typeof rawGender === "string" ? rawGender : "",
+        position: typeof rawPosition === "string" ? rawPosition : String(rawPosition ?? ""),
+      });
+    }
+
+    pageToken = data.data?.has_more ? data.data?.page_token : undefined;
+  } while (pageToken);
+
+  return results;
+}
+
 /** Returns the new record's id in "DATA TUYỂN DỤNG" (for the "Phản hồi của
  * bot" write-back), or null for sales-position submissions — that table
  * has no such column. */
