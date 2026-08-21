@@ -3,6 +3,7 @@ import { writeBotResponseStatus } from "@/lib/lark";
 import { sendLarkAlert } from "@/lib/lark-alert";
 
 const STATUS_BY_TYPE: Record<string, string> = {
+  welcome: "Đã chào mừng",
   cv_reject: "Đã từ chối CV",
   interview: "Đã hẹn phỏng vấn",
   interview_reject: "Đã từ chối PV",

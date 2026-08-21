@@ -360,6 +360,8 @@ export interface ApplicationMatch {
   /** "Nam" | "Nữ" | "" */
   gender: string;
   position: string;
+  recordId: string;
+  table: "sales" | "other";
 }
 
 async function findInTable(
@@ -368,6 +370,7 @@ async function findInTable(
   nameLabel: string,
   phoneLabel: string,
   target: string,
+  table: "sales" | "other",
 ): Promise<ApplicationMatch | null> {
   const tableId = await findTableId(token, tableName);
   const fields = await getFields(token, tableId);
@@ -389,7 +392,7 @@ async function findInTable(
       code: number;
       msg: string;
       data?: {
-        items?: { fields: Record<string, unknown> }[];
+        items?: { record_id: string; fields: Record<string, unknown> }[];
         has_more?: boolean;
         page_token?: string;
       };
@@ -410,6 +413,8 @@ async function findInTable(
           phone: phoneStr,
           gender: typeof rawGender === "string" ? rawGender : "",
           position: typeof rawPosition === "string" ? rawPosition : String(rawPosition ?? ""),
+          recordId: item.record_id,
+          table,
         };
       }
     }
@@ -436,13 +441,20 @@ export async function findApplicationByPhone(phone: string): Promise<Application
 
   const salesTableName = process.env.LARK_TABLE_NAME_SALES;
   if (salesTableName) {
-    const match = await findInTable(token, salesTableName, "họ tên", "số điện thoại liên hệ", target);
+    const match = await findInTable(
+      token,
+      salesTableName,
+      "họ tên",
+      "số điện thoại liên hệ",
+      target,
+      "sales",
+    );
     if (match) return match;
   }
 
   const generalTableName = process.env.LARK_TABLE_NAME_OTHER;
   if (generalTableName) {
-    const match = await findInTable(token, generalTableName, "họ và tên", "sđt", target);
+    const match = await findInTable(token, generalTableName, "họ và tên", "sđt", target, "other");
     if (match) return match;
   }
 

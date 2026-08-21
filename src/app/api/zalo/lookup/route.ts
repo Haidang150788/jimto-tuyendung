@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
       name: match?.name ?? null,
       gender: match?.gender || null,
       position: match?.position || null,
+      recordId: match?.recordId || null,
+      table: match?.table || null,
     });
   } catch (err) {
     console.error("[api/zalo/lookup] Lookup failed:", err);
