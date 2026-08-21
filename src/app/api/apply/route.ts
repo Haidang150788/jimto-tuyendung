@@ -3,7 +3,7 @@ import { submitApplicationToLark, writeBotResponseStatus } from "@/lib/lark";
 import { sendCvReceivedEmail } from "@/lib/email";
 import { isSalesPositionTitle } from "@/lib/sales-application-form";
 import { extractEmailFromCv } from "@/lib/extract-email-from-cv";
-import { sendLarkAlert } from "@/lib/lark-alert";
+import { sendLarkAlert, sendLarkActivity } from "@/lib/lark-alert";
 
 const MAX_CV_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ error: "submit_failed" }, { status: 502 });
   }
+  await sendLarkActivity(`Đã nhận hồ sơ của ${name} (${phone}, vị trí "${position}").`);
 
   // The application is already recorded in Lark at this point — a failed
   // confirmation email shouldn't turn into a failed submission for the
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
   if (email) {
     try {
       await sendCvReceivedEmail(email, name, position, gender);
+      await sendLarkActivity(`Đã gửi email xác nhận CV cho ${name} (${email}).`);
     } catch (err) {
       console.error("[api/apply] Failed to send CV-received email:", err);
       await sendLarkAlert(
