@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, Copy, Paperclip, X } from "lucide-react";
+import { Check, Copy, Paperclip, Sparkles, X } from "lucide-react";
 import type { JobItem } from "@/lib/site-content";
 import {
   isSalesPositionTitle,
@@ -183,22 +183,59 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
 
             {showZaloCta && ZALO_BOT_LINK ? (
               <>
-                <p className="mt-1 text-sm text-black/70">
-                  &quot;Gửi lời chào đến thư ký tuyển dụng Minh Phương để cập nhật liên tục tình
-                  hình ứng tuyển bạn nhé&quot;
-                </p>
-                <p className="text-xs text-black/40">
-                  Chỉ cần nhắn &quot;Xin chào&quot; hoặc thả 1 biểu tượng cảm xúc bất kỳ — Minh
-                  Phương sẽ chủ động bắt chuyện với bạn.
-                </p>
-                <a
-                  href={ZALO_BOT_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 flex animate-bounce items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand/30 hover:bg-brand-dark"
-                >
-                  💬 Bấm vào đây
-                </a>
+                <div className="relative mt-2 flex w-full flex-col items-center gap-3 rounded-2xl border border-brand/15 bg-gradient-to-b from-brand/[0.06] to-transparent px-4 pb-4 pt-6">
+                  <Sparkles
+                    className="absolute left-3 top-3 size-4 animate-pulse text-amber-400"
+                    aria-hidden
+                  />
+                  <Sparkles
+                    className="absolute right-4 top-6 size-5 animate-pulse text-brand [animation-delay:300ms]"
+                    aria-hidden
+                  />
+                  <Sparkles
+                    className="absolute bottom-3 left-6 size-3.5 animate-pulse text-sky-400 [animation-delay:600ms]"
+                    aria-hidden
+                  />
+
+                  {/* Mockup khung chat Zalo — minh hoạ đúng thao tác cần làm */}
+                  <div className="w-[210px] overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5">
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-[#0091ff] to-[#0068ff] px-3 py-2">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/25 text-[11px] font-bold text-white">
+                        MP
+                      </div>
+                      <div className="text-left leading-tight">
+                        <p className="text-xs font-bold text-white">Minh Phương</p>
+                        <p className="text-[10px] text-white/75">Trợ lý tuyển dụng</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end bg-[#eaf1f8] px-3 py-4">
+                      <div className="rounded-2xl rounded-br-sm bg-[#dcebff] px-3 py-1.5 text-sm font-semibold text-black/80 shadow-sm">
+                        Xin chào 👋
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-center text-base font-extrabold leading-snug text-black">
+                    Nhắn ngay với trợ lý tuyển dụng của chúng tôi!
+                  </p>
+                  <p className="text-center text-sm text-black/70">
+                    Gửi lời chào đến Minh Phương để cập nhật liên tục tình hình ứng tuyển của bạn
+                    nhé.
+                  </p>
+                  <p className="text-center text-xs text-black/40">
+                    Chỉ cần nhắn &quot;Xin chào&quot; hoặc thả 1 biểu tượng cảm xúc bất kỳ — Minh
+                    Phương sẽ chủ động bắt chuyện với bạn.
+                  </p>
+
+                  <a
+                    href={ZALO_BOT_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative mt-1 flex animate-bounce items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand/30 hover:bg-brand-dark"
+                  >
+                    💬 Nhắn ngay cho Minh Phương
+                  </a>
+                </div>
 
                 <div className="mt-1 flex flex-col items-center gap-1.5 text-xs text-black/40">
                   <span>
