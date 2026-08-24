@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findApplicationByPhone } from "@/lib/lark";
-import { sendLarkAlert } from "@/lib/lark-alert";
+import { sendZaloAlert } from "@/lib/lark-alert";
 
 // Called by the Zalo bot when a stranger messages it for the first time —
 // see ZALO_AUTOMATION.md. Confirms the phone number they send matches a
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("[api/zalo/lookup] Lookup failed:", err);
-    await sendLarkAlert(
+    await sendZaloAlert(
       `Tra cứu hồ sơ theo số điện thoại thất bại: ${err instanceof Error ? err.message : String(err)}`,
     );
     return NextResponse.json({ error: "lookup_failed" }, { status: 502 });

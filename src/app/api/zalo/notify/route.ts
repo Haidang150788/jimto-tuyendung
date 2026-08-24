@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pushZaloJob, type ZaloNotifyType } from "@/lib/zalo-queue";
-import { sendLarkAlert } from "@/lib/lark-alert";
+import { sendZaloAlert } from "@/lib/lark-alert";
 import { isZaloCtaPosition } from "@/lib/sales-application-form";
 
 const VALID_TYPES: ZaloNotifyType[] = ["cv_reject", "interview", "interview_reject", "offer"];
@@ -45,13 +45,13 @@ export async function POST(req: NextRequest) {
   // phải báo ngay, khác với 401 ở trên (request lạ, im lặng là đúng).
   if (!phone || !name || !position) {
     console.error("[api/zalo/notify] Missing fields:", { type, phone, name, position, recordId });
-    await sendLarkAlert(
+    await sendZaloAlert(
       `Automation "${type || "?"}" gọi /api/zalo/notify thiếu field bắt buộc (phone/name/position) — kiểm tra lại JSON body của Automation. recordId: ${recordId || "?"}`,
     );
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
   if (!VALID_TYPES.includes(type as ZaloNotifyType)) {
-    await sendLarkAlert(
+    await sendZaloAlert(
       `Automation gọi /api/zalo/notify với type "${type}" không hợp lệ — kiểm tra lại Automation. recordId: ${recordId || "?"}`,
     );
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/zalo/notify] Failed to queue job:", err);
-    await sendLarkAlert(
+    await sendZaloAlert(
       `Không xếp được hàng đợi Zalo cho ${name} (${phone}, loại "${type}"): ${err instanceof Error ? err.message : String(err)}`,
     );
     return NextResponse.json({ error: "queue_failed" }, { status: 502 });

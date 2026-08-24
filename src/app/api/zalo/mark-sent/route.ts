@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeBotResponseStatus } from "@/lib/lark";
-import { sendLarkAlert } from "@/lib/lark-alert";
+import { sendZaloAlert } from "@/lib/lark-alert";
 
 const STATUS_BY_TYPE: Record<string, string> = {
   welcome: "Đã chào mừng",
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/zalo/mark-sent] Failed to write back status:", err);
-    await sendLarkAlert(
+    await sendZaloAlert(
       `Đã gửi Zalo (${body?.type}) nhưng KHÔNG ghi được "Phản hồi Zalo" cho bản ghi ${recordId}: ${err instanceof Error ? err.message : String(err)}`,
     );
     return NextResponse.json({ error: "write_failed" }, { status: 502 });

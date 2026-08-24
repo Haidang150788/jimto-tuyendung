@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findStaleZaloApplications } from "@/lib/lark";
-import { sendLarkAlert } from "@/lib/lark-alert";
+import { sendZaloAlert } from "@/lib/lark-alert";
 
 const MIN_AGE_MINUTES = 15;
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ candidates });
   } catch (err) {
     console.error("[api/zalo/nudge-candidates] Failed to list candidates:", err);
-    await sendLarkAlert(
+    await sendZaloAlert(
       `Không lấy được danh sách ứng viên cần nhắn trước: ${err instanceof Error ? err.message : String(err)}`,
     );
     return NextResponse.json({ error: "list_failed" }, { status: 502 });

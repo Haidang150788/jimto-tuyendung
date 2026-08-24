@@ -9,16 +9,12 @@ import { createHmac } from "node:crypto";
 // documented signature scheme (HMAC-SHA256 of "{timestamp}\n{secret}" over
 // an empty message, base64-encoded) since "Signature Verification" is
 // enabled on this bot.
-export async function sendLarkAlert(text: string): Promise<void> {
-  const url = process.env.LARK_ALERT_WEBHOOK_URL;
-  const secret = process.env.LARK_ALERT_WEBHOOK_SECRET;
-  if (!url) return; // not configured — degrade to silent no-op, callers already log locally
-
+async function postToLarkWebhook(url: string, secret: string | undefined, text: string): Promise<void> {
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const body: Record<string, unknown> = {
       msg_type: "text",
-      content: { text: `⚠️ [Tuyển dụng] ${text}` },
+      content: { text },
     };
     if (secret) {
       const stringToSign = `${timestamp}\n${secret}`;
@@ -38,4 +34,23 @@ export async function sendLarkAlert(text: string): Promise<void> {
   } catch (err) {
     console.error("[lark-alert] Gửi cảnh báo thất bại:", err);
   }
+}
+
+// Cảnh báo chung cho luồng tuyển dụng (nộp hồ sơ, email) — group Lark gốc.
+export async function sendLarkAlert(text: string): Promise<void> {
+  const url = process.env.LARK_ALERT_WEBHOOK_URL;
+  const secret = process.env.LARK_ALERT_WEBHOOK_SECRET;
+  if (!url) return; // not configured — degrade to silent no-op, callers already log locally
+  await postToLarkWebhook(url, secret, `⚠️ [Tuyển dụng] ${text}`);
+}
+
+// Cảnh báo riêng khi Minh Phương (kênh Zalo) gặp lỗi — group Lark riêng để
+// dễ theo dõi sức khoẻ kênh này tách biệt khỏi lỗi email/nộp hồ sơ. Dùng ở
+// các route /api/zalo/* bên web; bot zalo-recruit-bot có bản mirror riêng
+// (không import chéo repo được) trỏ cùng webhook này.
+export async function sendZaloAlert(text: string): Promise<void> {
+  const url = process.env.LARK_ZALO_ALERT_WEBHOOK_URL;
+  const secret = process.env.LARK_ZALO_ALERT_WEBHOOK_SECRET;
+  if (!url) return;
+  await postToLarkWebhook(url, secret, `⚠️ [Minh Phương - Zalo] ${text}`);
 }
