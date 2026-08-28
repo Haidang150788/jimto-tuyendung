@@ -1,21 +1,30 @@
 # Luồng Zalo cho ứng viên tuyển dụng
 
-Chỉ 2 nhóm vị trí đi qua Zalo với **Minh Phương** (bot chạy trên tài khoản
+3 nhóm vị trí đi qua Zalo với **Minh Phương** (bot chạy trên tài khoản
 Zalo riêng — xem project `zalo-recruit-bot`, thư mục anh em, ngoài repo
-này): **"Tư vấn bán hàng"** (khối tư vấn viên, không có email) và **"Cửa
-hàng trưởng"** (vị trí văn phòng nhưng nhận cả Zalo lẫn email — quyết định
-21/08/2026). Xem `isZaloCtaPosition()` trong `sales-application-form.ts`
-— danh sách này chỉ quyết định có hiện CTA/nhận Zalo hay không, KHÔNG đổi
-việc "Cửa hàng trưởng" vẫn dùng form văn phòng bình thường (email/CV, 1
-bước), không phải form sàng lọc 2 bước của sales.
+này), mỗi nhóm một cách đối xử khác nhau — xem `isZaloCtaPosition()` /
+`isZaloOnlyPosition()` trong `sales-application-form.ts`:
 
-Các vị trí văn phòng còn lại chỉ dùng kênh email (xem
-`EMAIL_AUTOMATION.md`) — CTA nhắn Minh Phương trên web không hiện với họ,
-và cột "Phản hồi Zalo" được đặt sẵn `Không áp dụng` ngay lúc tạo bản ghi
-(thay vì `Chưa bắt đầu`) để không bị hiểu nhầm là "đang chờ Zalo".
+- **"Tư vấn bán hàng"** — khối tư vấn viên, dùng form sàng lọc 2 bước
+  riêng (bảng "(NEW) Form tuyển dụng"), không có email ngay từ đầu.
+- **"Cửa hàng trưởng"** — vị trí văn phòng, dùng form văn phòng bình
+  thường (email/CV, 1 bước), nhận **cả Zalo lẫn email song song** (quyết
+  định 21/08/2026).
+- **"Nhân viên kho"** — vị trí văn phòng, dùng form văn phòng bình
+  thường, nhưng **Zalo thay thế hoàn toàn Email** (quyết định
+  25/08/2026): form không hiện ô email, không bắt buộc, không trích từ CV;
+  record tạo ra có "Phản hồi email" = `Không áp dụng` ngay từ đầu, và
+  `/api/email/notify` tự bỏ qua êm (không báo lỗi) nếu Automation lỡ bắn
+  vào vị trí này.
+
+Các vị trí văn phòng còn lại (không thuộc 3 nhóm trên) chỉ dùng kênh email
+(xem `EMAIL_AUTOMATION.md`) — CTA nhắn Minh Phương trên web không hiện với
+họ, và cột "Phản hồi Zalo" được đặt sẵn `Không áp dụng` ngay lúc tạo bản
+ghi (thay vì `Chưa bắt đầu`) để không bị hiểu nhầm là "đang chờ Zalo".
 
 4 loại kết quả (từ chối CV / mời phỏng vấn / từ chối sau phỏng vấn / mời
-nhận việc) được gửi qua Zalo cho 2 nhóm vị trí trên.
+nhận việc) được gửi qua Zalo cho cả 3 nhóm vị trí trên — riêng "Nhân viên
+kho" thì đây là kênh DUY NHẤT, không có email dự phòng.
 
 **Nguyên tắc gốc:** ứng viên nên nhắn cho Minh Phương trước. Từ 21/08/2026
 có thêm ngoại lệ có chủ đích — xem mục "Nhắn trước (proactive nudge)" bên
@@ -48,13 +57,16 @@ cột "Phản hồi Zalo" để ghi lại kết quả
 
 ## Nhắn trước (proactive nudge)
 
-Chỉ áp dụng cho bảng "(NEW) Form tuyển dụng" (sales) — **không** áp dụng
-cho "Cửa hàng trưởng" dù vị trí này cũng nhận Zalo, vì ứng viên đó nằm ở
-bảng "DATA TUYỂN DỤNG" và `findStaleSalesApplications()` chỉ quét bảng
-sales. Ứng viên sales có
-"Phản hồi Zalo" == `Chưa bắt đầu` (giá trị mặc định lúc tạo bản ghi — xem
-`submitToSalesTable` trong `src/lib/lark.ts`) và "Submitted on" đã quá 15
-phút được coi là chưa tự liên hệ, bot sẽ chủ động nhắn trước.
+Áp dụng cho mọi vị trí có Zalo — `findStaleZaloApplications()` trong
+`src/lib/lark.ts` quét cả bảng "(NEW) Form tuyển dụng" (toàn bộ, luôn là
+sales) lẫn bảng "DATA TUYỂN DỤNG" (chỉ lọc ra "Cửa hàng trưởng" và "Nhân
+viên kho" qua `isZaloCtaPosition()` — các vị trí văn phòng khác không có
+Zalo nên không bao giờ khớp). Ứng viên có "Phản hồi Zalo" == `Chưa bắt
+đầu` (giá trị mặc định lúc tạo bản ghi) và "Submitted on" đã quá 15 phút
+được coi là chưa tự liên hệ, bot sẽ chủ động nhắn trước. Với "Nhân viên
+kho" đây đặc biệt quan trọng vì Zalo là kênh liên lạc DUY NHẤT — ứng viên
+im lặng 15 phút mà không được nhắn trước thì coi như mất liên lạc hoàn
+toàn, không có email dự phòng.
 
 ```
 bot poll GET /api/zalo/nudge-candidates mỗi NUDGE_POLL_INTERVAL_MS (mặc
