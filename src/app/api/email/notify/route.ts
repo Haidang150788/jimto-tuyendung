@@ -8,6 +8,7 @@ import {
 } from "@/lib/email";
 import { writeBotResponseStatus } from "@/lib/lark";
 import { sendLarkAlert } from "@/lib/lark-alert";
+import { isZaloOnlyPosition } from "@/lib/sales-application-form";
 
 const VALID_TYPES = ["cv_reject", "interview", "interview_reject", "offer"] as const;
 type NotifyType = (typeof VALID_TYPES)[number];
@@ -55,10 +56,26 @@ export async function POST(req: NextRequest) {
   // đây luôn là lỗi cấu hình Automation (ví dụ quên chèn field vào JSON
   // body), im lặng bỏ qua sẽ không ai biết — phải báo ngay, khác với 401
   // ở trên (request lạ, im lặng là đúng).
-  if (!email || !name || !position) {
+  if (!name || !position) {
     console.error("[api/email/notify] Missing fields:", { type, email, name, position, recordId });
     await sendLarkAlert(
-      `Automation "${type || "?"}" gọi /api/email/notify thiếu field bắt buộc (email/name/position) — kiểm tra lại JSON body của Automation. recordId: ${recordId || "?"}`,
+      `Automation "${type || "?"}" gọi /api/email/notify thiếu field bắt buộc (name/position) — kiểm tra lại JSON body của Automation. recordId: ${recordId || "?"}`,
+    );
+    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  }
+
+  // Vị trí Zalo-only (ví dụ "Nhân viên kho") không bao giờ có email — bỏ
+  // qua êm, không phải lỗi cấu hình. Automation trên DATA TUYỂN DỤNG bắn
+  // cho mọi vị trí (Lark không lọc theo vị trí ở bước trigger), nên đây là
+  // trường hợp bình thường, không phải sự cố.
+  if (isZaloOnlyPosition(position)) {
+    return NextResponse.json({ ok: true, skipped: "zalo_only_position" });
+  }
+
+  if (!email) {
+    console.error("[api/email/notify] Missing email:", { type, name, position, recordId });
+    await sendLarkAlert(
+      `Automation "${type || "?"}" gọi /api/email/notify thiếu field bắt buộc (email) — kiểm tra lại JSON body của Automation, hoặc hồ sơ "${name}" chưa có email. recordId: ${recordId || "?"}`,
     );
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }

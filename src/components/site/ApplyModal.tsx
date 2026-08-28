@@ -6,6 +6,7 @@ import type { JobItem } from "@/lib/site-content";
 import {
   isSalesPositionTitle,
   isZaloCtaPosition,
+  isZaloOnlyPosition,
   SALES_STEP2_FIELDS,
 } from "@/lib/sales-application-form";
 
@@ -31,6 +32,7 @@ const ZALO_BOT_LINK = ZALO_BOT_PHONE
 export function ApplyModal({ job, onClose }: ApplyModalProps) {
   const isSalesPosition = job ? isSalesPositionTitle(job.title) : false;
   const showZaloCta = job ? isZaloCtaPosition(job.title) : false;
+  const requiresEmail = !isSalesPosition && !(job && isZaloOnlyPosition(job.title));
 
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
@@ -127,7 +129,7 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
       setError("Vui lòng chọn ít nhất một địa điểm mong muốn.");
       return;
     }
-    if (!email.trim() && !cvFile) {
+    if (requiresEmail && !email.trim() && !cvFile) {
       setError("Vui lòng nhập email, hoặc đính kèm CV có ghi rõ địa chỉ email.");
       return;
     }
@@ -382,30 +384,30 @@ export function ApplyModal({ job, onClose }: ApplyModalProps) {
               placeholder="Số điện thoại"
               className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
             />
+            {requiresEmail && (
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email (hoặc để trống nếu CV đã có email)"
+                className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+              />
+            )}
             {!isSalesPosition && (
-              <>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email (hoặc để trống nếu CV đã có email)"
-                  className="rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
-                />
-                <div className="flex gap-4 px-1 text-sm text-black/70">
-                  {(["Nam", "Nữ"] as const).map((g) => (
-                    <label key={g} className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="gender"
-                        checked={gender === g}
-                        onChange={() => setGender(g)}
-                        className="size-4 accent-brand"
-                      />
-                      {g}
-                    </label>
-                  ))}
-                </div>
-              </>
+              <div className="flex gap-4 px-1 text-sm text-black/70">
+                {(["Nam", "Nữ"] as const).map((g) => (
+                  <label key={g} className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="gender"
+                      checked={gender === g}
+                      onChange={() => setGender(g)}
+                      className="size-4 accent-brand"
+                    />
+                    {g}
+                  </label>
+                ))}
+              </div>
             )}
 
             {needsLocationChoice && (

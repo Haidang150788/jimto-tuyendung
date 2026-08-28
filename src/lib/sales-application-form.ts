@@ -18,17 +18,36 @@ export function isSalesPositionTitle(title: string): boolean {
   return title.trim().toLowerCase().includes(SALES_POSITION_TITLE.toLowerCase());
 }
 
-// Positions that get the Zalo CTA (Minh Phương) on top of email, without
-// using the 2-step sales screening form — currently just "Cửa hàng
-// trưởng" per Sếp's request (21/08/2026). Sales positions always qualify
-// too; kept as a separate list so adding one here never accidentally
-// switches a position onto the sales form.
-const ZALO_CTA_EXTRA_TITLES = ["Cửa hàng trưởng"];
+// Office positions (regular 1-step form, not the 2-step sales screening
+// form) that also get the Zalo CTA. Two different treatments:
+//   - ZALO_PLUS_EMAIL_TITLES: both channels run in parallel — email is
+//     still required/collected as normal (currently "Cửa hàng trưởng",
+//     21/08/2026).
+//   - ZALO_ONLY_TITLES: Zalo REPLACES email entirely — the form doesn't
+//     require an email, and no CV/status email ever gets sent for these
+//     candidates (currently "Nhân viên kho", 25/08/2026).
+// Sales positions always qualify for the CTA too, checked separately so
+// adding a title here never accidentally switches a position onto the
+// sales form.
+const ZALO_PLUS_EMAIL_TITLES = ["Cửa hàng trưởng"];
+const ZALO_ONLY_TITLES = ["Nhân viên kho"];
+
+function matchesAny(title: string, list: string[]): boolean {
+  const normalized = title.trim().toLowerCase();
+  return list.some((t) => normalized.includes(t.toLowerCase()));
+}
 
 export function isZaloCtaPosition(title: string): boolean {
   if (isSalesPositionTitle(title)) return true;
-  const normalized = title.trim().toLowerCase();
-  return ZALO_CTA_EXTRA_TITLES.some((t) => normalized.includes(t.toLowerCase()));
+  return matchesAny(title, ZALO_PLUS_EMAIL_TITLES) || matchesAny(title, ZALO_ONLY_TITLES);
+}
+
+/** True when email should be skipped entirely (not even collected as
+ * optional) — Zalo is the only channel for this position. Never true for
+ * sales positions; those have their own dedicated form that never asks
+ * for email either, handled separately via isSalesPositionTitle. */
+export function isZaloOnlyPosition(title: string): boolean {
+  return matchesAny(title, ZALO_ONLY_TITLES);
 }
 
 export type Step2FieldType = "text" | "date" | "radio";

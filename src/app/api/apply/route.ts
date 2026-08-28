@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitApplicationToLark, writeBotResponseStatus } from "@/lib/lark";
 import { sendCvReceivedEmail } from "@/lib/email";
-import { isSalesPositionTitle } from "@/lib/sales-application-form";
+import { isSalesPositionTitle, isZaloOnlyPosition } from "@/lib/sales-application-form";
 import { extractEmailFromCv } from "@/lib/extract-email-from-cv";
 import { sendLarkAlert } from "@/lib/lark-alert";
 
@@ -43,19 +43,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "cv_too_large" }, { status: 413 });
   }
 
-  // Office positions require an email on file (sales-floor candidates never
-  // have one by design — see sales-application-form.ts). Candidates often
+  // Office positions require an email on file, except sales-floor
+  // candidates (never have one by design) and Zalo-only positions (e.g.
+  // "Nhân viên kho" — Zalo replaces email entirely, so never require or
+  // even extract one — see sales-application-form.ts). Candidates often
   // only put it in their CV rather than the form field, so fall back to
   // extracting it from the file before treating it as truly missing.
   const isSalesPosition = isSalesPositionTitle(position);
-  if (!isSalesPosition && !email && cvFile) {
+  const isZaloOnly = isZaloOnlyPosition(position);
+  if (!isSalesPosition && !isZaloOnly && !email && cvFile) {
     const extracted = await extractEmailFromCv(cvFile).catch((err) => {
       console.error("[api/apply] CV email extraction failed:", err);
       return null;
     });
     if (extracted) email = extracted;
   }
-  if (!isSalesPosition && !email) {
+  if (!isSalesPosition && !isZaloOnly && !email) {
     return NextResponse.json({ error: "email_required" }, { status: 400 });
   }
 

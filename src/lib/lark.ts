@@ -1,6 +1,7 @@
 import {
   isSalesPositionTitle,
   isZaloCtaPosition,
+  isZaloOnlyPosition,
   SALES_STEP2_FIELDS,
 } from "./sales-application-form";
 
@@ -369,10 +370,14 @@ async function submitToGeneralTable(
   // Cùng quy tắc với "Phản hồi Zalo": đặt "Chưa bắt đầu" ngay khi tạo, chỉ
   // đổi thành "Đã chào mừng" sau khi email chào mừng THỰC SỰ gửi thành
   // công (xem POST /api/apply) — trước đây ghi "Đã chào mừng" ngay lập
-  // tức bất kể gửi mail có thành công hay không.
+  // tức bất kể gửi mail có thành công hay không. Vị trí Zalo-only (ví dụ
+  // "Nhân viên kho" — xem isZaloOnlyPosition) không bao giờ dùng email nên
+  // đặt "Không áp dụng" luôn, đối xứng với "Phản hồi Zalo" ở trên.
   const emailStatusField = tryResolveFieldName(fields, "phản hồi email");
   if (emailStatusField) {
-    record[emailStatusField] = "Chưa bắt đầu";
+    record[emailStatusField] = isZaloOnlyPosition(submission.position)
+      ? "Không áp dụng"
+      : "Chưa bắt đầu";
   }
 
   return createRecord(token, tableId, record);
