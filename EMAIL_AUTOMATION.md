@@ -27,7 +27,7 @@ Vào project trên Vercel → **Settings → Environment Variables**, thêm:
 | Key | Value |
 |---|---|
 | `RESEND_API_KEY` | key vừa tạo ở bước 1.5 |
-| `EMAIL_FROM` | `Tuyển dụng Jim Tồ <tuyendung@jimto.vn>` (đổi địa chỉ nếu muốn, miễn thuộc domain đã verify) |
+| `EMAIL_FROM` | `Tuyển dụng Jim Tồ <hanhchinhtuyendung@jimto.vn>` (đổi địa chỉ nếu muốn, miễn thuộc domain đã verify) |
 | `EMAIL_WEBHOOK_SECRET` | `66b30960e9ebddb82b8e0d890844034c03df0d7a3cc9a50b` (mã này đã tạo sẵn — copy y hệt, dùng lại ở bước 3) |
 
 Xong **Redeploy** như mọi lần thêm biến môi trường khác.
