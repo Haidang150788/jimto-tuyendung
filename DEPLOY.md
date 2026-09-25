@@ -23,6 +23,7 @@ git push -u origin master
 2. Bấm **Add New → Project**, chọn repo `jimto-tuyendung` vừa tạo → **Import**.
 3. Ở bước cấu hình, thêm các **Environment Variable** sau (lấy giá trị y hệt trong file `.env.local` trên máy bạn):
    - `ADMIN_PASSWORD` = mật khẩu bạn muốn dùng để đăng nhập `/admin` (đổi khác mật khẩu demo `jimto-hr-2026` cho chắc ăn).
+   - `CV_LINK_SECRET` — chuỗi ngẫu nhiên dùng ký link "Đơn ứng tuyển" (trang in CV `/ho-so/<record_id>`) trong bảng "(NEW) Form tuyển dụng". Phải giống hệt `.env.local`; đổi giá trị thì chạy lại `node scripts/backfill-cv-links.mjs --apply`.
    - `LARK_APP_ID`, `LARK_APP_SECRET`, `LARK_BASE_APP_TOKEN`, `LARK_TABLE_NAME_SALES`, `LARK_TABLE_NAME_OTHER` — để nút "Ứng tuyển" gửi hồ sơ vào đúng bảng Lark (vị trí "Nhân viên tư vấn bán hàng" vào bảng screening riêng, các vị trí khác vào bảng chung). Thiếu biến nào thì gửi hồ sơ cho nhóm vị trí tương ứng sẽ báo lỗi.
 4. Bấm **Deploy**. Sau ~1 phút sẽ có link dạng `jimto-tuyendung.vercel.app` — mở thử để chắc trang chạy được.
 

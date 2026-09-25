@@ -4,6 +4,8 @@ import {
   isZaloOnlyPosition,
   SALES_STEP2_FIELDS,
 } from "./sales-application-form";
+import { buildCvUrl } from "./cv-link";
+import { sendLarkAlert } from "./lark-alert";
 
 const LARK_API_BASE = "https://open.larksuite.com/open-apis";
 
@@ -299,7 +301,80 @@ async function submitToSalesTable(token: string, submission: ApplicationSubmissi
     record[zaloStatusField] = "Chưa bắt đầu";
   }
 
-  await createRecord(token, tableId, record);
+  const recordId = await createRecord(token, tableId, record);
+
+  // Link "Đơn ứng tuyển" (mẫu CV in được, xem cv-link.ts) chỉ có sau khi
+  // record tồn tại vì chữ ký gắn với record_id. Hồ sơ đã lưu rồi nên lỗi ở
+  // đây không được làm hỏng lượt nộp — báo group để chạy lại
+  // scripts/backfill-cv-links.mjs.
+  try {
+    await writeSalesCvLink(token, tableId, fields, recordId);
+  } catch (err) {
+    console.error("[lark] Failed to write CV link:", err);
+    await sendLarkAlert(
+      `Đã lưu hồ sơ của ${submission.name} (${submission.phone}) nhưng KHÔNG ghi được link "${SALES_CV_LINK_FIELD}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/** URL column (type 15) in "(NEW) Form tuyển dụng" holding the printable-CV link. */
+export const SALES_CV_LINK_FIELD = "Đơn ứng tuyển";
+
+async function writeSalesCvLink(
+  token: string,
+  tableId: string,
+  fields: FieldInfo[],
+  recordId: string,
+): Promise<void> {
+  const linkField = tryResolveFieldName(fields, SALES_CV_LINK_FIELD);
+  if (!linkField) {
+    throw new Error(`Không tìm thấy cột "${SALES_CV_LINK_FIELD}" trong bảng`);
+  }
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+  const res = await fetch(
+    `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fields: { [linkField]: { link: buildCvUrl(recordId), text: "Xem đơn" } },
+      }),
+    },
+  );
+  const data = (await res.json()) as { code: number; msg: string };
+  if (data.code !== 0) {
+    throw new Error(`Lark update record failed: ${data.msg} (code ${data.code})`);
+  }
+}
+
+/** Raw fields of one "(NEW) Form tuyển dụng" record, keyed by Lark column
+ * name — for the printable CV page. null when the record doesn't exist. */
+export async function getSalesRecord(recordId: string): Promise<Record<string, unknown> | null> {
+  const tableName = process.env.LARK_TABLE_NAME_SALES;
+  if (!tableName) {
+    throw new Error("LARK_TABLE_NAME_SALES is not configured");
+  }
+  const token = await getTenantAccessToken();
+  const tableId = await findTableId(token, tableName);
+  const appToken = process.env.LARK_BASE_APP_TOKEN;
+  const res = await fetch(
+    `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records/${recordId}`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  const data = (await res.json()) as {
+    code: number;
+    msg: string;
+    data?: { record?: { fields: Record<string, unknown> } };
+  };
+  // 1254043 RecordIdNotFound — record bị xoá sau khi link đã được ghi.
+  if (data.code === 1254043) return null;
+  if (data.code !== 0 || !data.data?.record) {
+    throw new Error(`Lark get record failed: ${data.msg} (code ${data.code})`);
+  }
+  return data.data.record.fields;
 }
 
 // "DATA TUYỂN DỤNG" — the shared HR sheet for every other position. Vị trí

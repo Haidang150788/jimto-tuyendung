@@ -131,3 +131,18 @@
     @apply font-sans;
   }
 }
+/* Printable CV (/ho-so/[recordId]) — full-bleed A4, keep the pink fills. */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  body:has([data-cv-sheet]) {
+    background: #fff5f8;
+  }
+}
