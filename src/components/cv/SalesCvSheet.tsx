@@ -1,5 +1,14 @@
 import { Dancing_Script } from "next/font/google";
-import { Briefcase, GraduationCap, Heart, House, Star, User, type LucideIcon } from "lucide-react";
+import {
+  Briefcase,
+  GraduationCap,
+  Heart,
+  House,
+  MessageCircleQuestion,
+  Star,
+  User,
+  type LucideIcon,
+} from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 import { cn } from "@/lib/utils";
 import type { SalesCv } from "@/lib/sales-cv";
@@ -234,6 +243,17 @@ export function SalesCvSheet({ cv }: { cv: SalesCv }) {
             <Line label="Điểm yếu:" value={cv.weaknesses} multiline className="sm:pl-4 print:pl-4" />
           </div>
         </Section>
+
+        {/* Not part of HCNS's template — only added when the candidate wrote something. */}
+        {cv.openQuestion && (
+          <Section
+            icon={MessageCircleQuestion}
+            title="6. Câu hỏi mở"
+            className="md:col-span-2 print:col-span-2"
+          >
+            <Line label="Ứng viên muốn hỏi / chia sẻ thêm:" value={cv.openQuestion} multiline />
+          </Section>
+        )}
       </div>
 
       <p

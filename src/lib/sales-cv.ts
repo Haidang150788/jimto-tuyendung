@@ -33,6 +33,8 @@ export interface SalesCv {
   leaveReason: string;
   strengths: string;
   weaknesses: string;
+  /** Not on HCNS's template — the CV only shows it when answered. */
+  openQuestion: string;
   submittedAt: string;
 }
 
@@ -105,6 +107,7 @@ export function toSalesCv(raw: Record<string, unknown>): SalesCv {
     leaveReason: get("Nếu đã từng làm việc ở nơi khác, vì sao bạn nghĩ ở chỗ cũ?"),
     strengths: get("Thế mạnh của bạn là gì?"),
     weaknesses: get("Điểm yếu của bạn là gì?"),
+    openQuestion: get("Câu hỏi mở"),
     submittedAt: getDate("Submitted on", true),
   };
 }
