@@ -113,6 +113,12 @@ export const SALES_STEP2_FIELDS: Step2FieldDef[] = [
     ],
   },
   {
+    key: "Số người con",
+    label: "Số người con (nếu đã có con)",
+    type: "text",
+    required: false,
+  },
+  {
     key: "Con nhỏ nhất của bạn mấy tháng tuổi? (nếu đã có con) 2",
     label: "Con nhỏ nhất của bạn mấy tháng tuổi? (nếu đã có con)",
     type: "text",
@@ -141,6 +147,19 @@ export const SALES_STEP2_FIELDS: Step2FieldDef[] = [
     key: "Chuyên ngành",
     label: "Chuyên ngành",
     hint: "Nếu bạn đã từng học một chuyên ngành nào đó, hãy cho chúng tôi biết",
+    type: "text",
+    required: false,
+  },
+  {
+    key: "Năm tốt nghiệp",
+    label: "Năm tốt nghiệp",
+    type: "text",
+    required: false,
+  },
+  {
+    key: "Các chứng chỉ khác (nếu có)",
+    label: "Các chứng chỉ khác (nếu có)",
+    hint: "Ví dụ: tin học, ngoại ngữ, kế toán…",
     type: "text",
     required: false,
   },
@@ -202,6 +221,13 @@ export const SALES_STEP2_FIELDS: Step2FieldDef[] = [
     label: "Bạn dự kiến gắn bó với công việc bao lâu?",
     type: "text",
     required: true,
+  },
+  {
+    key: "Full-time / Part-time",
+    label: "Bạn muốn làm Full-time hay Part-time?",
+    type: "radio",
+    required: true,
+    options: ["Full-time", "Part-time"],
   },
   {
     key: "Thời gian bắt đầu",

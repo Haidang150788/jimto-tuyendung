@@ -2,8 +2,9 @@
 // printable CV template (docs/design-references/cv-template.pdf). Column
 // names are matched case/whitespace-insensitively like lark.ts, and a
 // renamed/missing column just renders as an empty line for handwriting —
-// never a crash. Template lines the web form doesn't ask about (Số người
-// con, Full-time/Part-time, Năm tốt nghiệp, Chứng chỉ) stay blank on purpose.
+// never a crash — including records submitted before a question existed
+// (Số người con, Full-time/Part-time, Năm tốt nghiệp, Chứng chỉ were added
+// 25/09/2026, so older applications leave those lines blank).
 
 export interface SalesCv {
   name: string;
@@ -82,12 +83,12 @@ export function toSalesCv(raw: Record<string, unknown>): SalesCv {
     height: get("Chiều cao"),
     weight: get("Cân nặng"),
     marital: get("Tình trạng hôn nhân"),
-    childrenCount: "",
+    childrenCount: get("Số người con"),
     youngestChildAge: get("Con nhỏ nhất của bạn mấy tháng tuổi? (nếu đã có con) 2"),
     maternity: get("Tình trạng thai sản"),
     position: get("Vị trí ứng tuyển"),
     branch: get("Bạn mong muốn làm việc chi nhánh nào( Dành cho vị trí tư vấn viên)"),
-    workType: "",
+    workType: get("Full-time / Part-time"),
     startDate: getDate("Thời gian bắt đầu"),
     expectedSalary: get("Bạn tìm kiếm mức thu nhập bao nhiêu cho công việc sắp tới?"),
     futurePlan: get("Dự định của bạn trong 3 năm tới là gì?"),
@@ -98,8 +99,8 @@ export function toSalesCv(raw: Record<string, unknown>): SalesCv {
     ),
     education: get("Trình độ bằng cấp"),
     major: get("Chuyên ngành"),
-    graduationYear: "",
-    certificates: "",
+    graduationYear: get("Năm tốt nghiệp"),
+    certificates: get("Các chứng chỉ khác (nếu có)"),
     experience: get("Kinh nghiệm làm việc (nếu có)"),
     leaveReason: get("Nếu đã từng làm việc ở nơi khác, vì sao bạn nghĩ ở chỗ cũ?"),
     strengths: get("Thế mạnh của bạn là gì?"),
