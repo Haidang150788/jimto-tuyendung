@@ -32,12 +32,32 @@ let cachedToken: CachedToken | null = null;
 const tableIdCache = new Map<string, string>(); // table name -> table_id
 const fieldsCache = new Map<string, FieldInfo[]>(); // table_id -> fields
 
+// Đường Vercel → Lark thỉnh thoảng nghẽn vài giây ("fetch failed" hoặc 5xx
+// từ gateway), tự hết ở lần gọi sau. Chỉ dùng cho lệnh ĐỌC (và lấy token) —
+// gọi lại không đổi dữ liệu. KHÔNG dùng cho tạo bản ghi/tải tệp: lần đầu có
+// thể đã tới Lark rồi mới đứt, thử lại sẽ ra bản ghi trùng.
+const LARK_READ_ATTEMPTS = 3;
+
+async function larkReadFetch(input: string | URL, init?: RequestInit): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(input, init);
+      if (res.status < 500 || attempt >= LARK_READ_ATTEMPTS) return res;
+      console.warn(`[lark] ${res.status} lần ${attempt}/${LARK_READ_ATTEMPTS}, thử lại`);
+    } catch (err) {
+      if (attempt >= LARK_READ_ATTEMPTS) throw err;
+      console.warn(`[lark] ${err instanceof Error ? err.message : err} lần ${attempt}/${LARK_READ_ATTEMPTS}, thử lại`);
+    }
+    await new Promise((r) => setTimeout(r, 1000 * attempt));
+  }
+}
+
 async function getTenantAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
     return cachedToken.token;
   }
 
-  const res = await fetch(`${LARK_API_BASE}/auth/v3/tenant_access_token/internal`, {
+  const res = await larkReadFetch(`${LARK_API_BASE}/auth/v3/tenant_access_token/internal`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -69,7 +89,7 @@ async function findTableId(token: string, tableName: string): Promise<string> {
   if (cached) return cached;
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;
-  const res = await fetch(
+  const res = await larkReadFetch(
     `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables?page_size=100`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
@@ -103,14 +123,20 @@ async function getFields(token: string, tableId: string): Promise<FieldInfo[]> {
   if (cached) return cached;
 
   const appToken = process.env.LARK_BASE_APP_TOKEN;
-  const res = await fetch(
+  const res = await larkReadFetch(
     `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/fields?page_size=100`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
   const data = (await res.json()) as {
     code: number;
+    msg?: string;
     data?: { items?: { field_name: string; type: number }[] };
   };
+  // Trước đây lỗi tạm thời ở đây bị cache thành "bảng không có cột nào",
+  // làm instance đó báo "Không tìm thấy cột" cho tới khi bị thu hồi.
+  if (data.code !== 0) {
+    throw new Error(`Lark list fields failed: ${data.msg} (code ${data.code})`);
+  }
 
   const fields = (data.data?.items ?? []).map((f) => ({ name: f.field_name, type: f.type }));
   fieldsCache.set(tableId, fields);
@@ -360,7 +386,7 @@ export async function getSalesRecord(recordId: string): Promise<Record<string, u
   const token = await getTenantAccessToken();
   const tableId = await findTableId(token, tableName);
   const appToken = process.env.LARK_BASE_APP_TOKEN;
-  const res = await fetch(
+  const res = await larkReadFetch(
     `${LARK_API_BASE}/bitable/v1/apps/${appToken}/tables/${tableId}/records/${recordId}`,
     { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
   );
@@ -500,7 +526,7 @@ async function findInTable(
     url.searchParams.set("page_size", "100");
     if (pageToken) url.searchParams.set("page_token", pageToken);
 
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await larkReadFetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const data = (await res.json()) as {
       code: number;
       msg: string;
@@ -612,7 +638,7 @@ async function findStaleZaloInTable(
     url.searchParams.set("page_size", "100");
     if (pageToken) url.searchParams.set("page_token", pageToken);
 
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await larkReadFetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const data = (await res.json()) as {
       code: number;
       msg: string;

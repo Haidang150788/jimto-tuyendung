@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findStaleZaloApplications } from "@/lib/lark";
-import { sendZaloAlert } from "@/lib/lark-alert";
 
 const MIN_AGE_MINUTES = 15;
 
@@ -25,10 +24,11 @@ export async function GET(req: NextRequest) {
     const candidates = await findStaleZaloApplications(MIN_AGE_MINUTES);
     return NextResponse.json({ candidates });
   } catch (err) {
+    // Không tự báo Lark ở đây: route này được bot gọi 5 phút/lần, lỗi mạng
+    // Vercel→Lark thường tự hết ở lượt sau. Bot là bên đếm được lỗi liên
+    // tiếp nên chỉ bot báo, kèm `detail` dưới đây (xem outageGate bên bot).
+    const detail = err instanceof Error ? err.message : String(err);
     console.error("[api/zalo/nudge-candidates] Failed to list candidates:", err);
-    await sendZaloAlert(
-      `Không lấy được danh sách ứng viên cần nhắn trước: ${err instanceof Error ? err.message : String(err)}`,
-    );
-    return NextResponse.json({ error: "list_failed" }, { status: 502 });
+    return NextResponse.json({ error: "list_failed", detail }, { status: 502 });
   }
 }
