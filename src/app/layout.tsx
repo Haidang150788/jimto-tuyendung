@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { connection } from "next/server";
 import { SiteContentProvider } from "@/lib/site-content-context";
 import { getSiteContent } from "@/lib/site-content-store";
+import { IN_APP_BROWSER_GUARD_SCRIPT } from "@/lib/in-app-browser-guard";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -32,6 +33,9 @@ export default async function RootLayout({
 
   return (
     <html lang="vi" className={`${plusJakartaSans.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: IN_APP_BROWSER_GUARD_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <SiteContentProvider initialContent={initialContent}>{children}</SiteContentProvider>
       </body>

@@ -41,6 +41,12 @@ export function SiteContentProvider({
   contentRef.current = content;
 
   useEffect(() => {
+    // Tells IN_APP_BROWSER_GUARD_SCRIPT the app hydrated, so it stays out
+    // of the way (see in-app-browser-guard.ts).
+    (window as Window & { __jtReady?: boolean }).__jtReady = true;
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     fetch("/api/content")
