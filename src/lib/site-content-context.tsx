@@ -28,8 +28,14 @@ interface SiteContentContextValue {
 
 const SiteContentContext = createContext<SiteContentContextValue | null>(null);
 
-export function SiteContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+export function SiteContentProvider({
+  children,
+  initialContent,
+}: {
+  children: ReactNode;
+  initialContent: SiteContent;
+}) {
+  const [content, setContent] = useState<SiteContent>(initialContent);
   const [isLoaded, setIsLoaded] = useState(false);
   const contentRef = useRef(content);
   contentRef.current = content;
